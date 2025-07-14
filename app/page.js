@@ -270,9 +270,11 @@ const IntegratedListeningSimulator = ({ title, transcript }) => {
     return (
       <div className="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
         <h4 className="font-bold text-green-800 mb-3 flex items-center">
-          <Headphones className="w-5 h-5 mr-2" />
-          {title}
+        <Headphones className="w-5 h-5 mr-2" />
+        Listening Scenario
         </h4>
+        <p className="text-gray-700 leading-relaxed mb-4">{title}</p>
+      
         <div className="mt-3 p-3 bg-white rounded border border-green-200">
           <p className="text-sm text-gray-600 mb-1 font-medium">📝 Transcript:</p>
           <p className="text-gray-700 italic leading-relaxed">{transcript}</p>
@@ -285,8 +287,10 @@ const IntegratedListeningSimulator = ({ title, transcript }) => {
     <div className="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
       <h4 className="font-bold text-green-800 mb-3 flex items-center">
         <Headphones className="w-5 h-5 mr-2" />
-        {title}
+        Listening Scenario
       </h4>
+      <p className="text-gray-700 leading-relaxed mb-4">{title}</p>
+      
       
       {/* Audio Controls - Same style as ListeningSimulator */}
       <div className="flex items-center space-x-3 mb-4">
