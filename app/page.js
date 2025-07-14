@@ -657,6 +657,8 @@ const TOEFLCrashCourse = () => {
     </div>
   );
 
+}
+
 export default function Home() {
   return <TOEFLCrashCourse />;
 }
