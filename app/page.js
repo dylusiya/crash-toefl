@@ -1,8 +1,4 @@
 'use client'
-// Copy the entire React component code from the artifact here
-import React, { useState } from 'react';
-import { Clock, BookOpen, Headphones, Mic, PenTool, Target, Zap, CheckCircle, Star, Timer, Brain, Lightbulb } from 'lucide-react';
-
 import React, { useState } from 'react';
 import { Clock, BookOpen, Headphones, Mic, PenTool, Target, Zap, CheckCircle, Star, Timer, Brain, Lightbulb } from 'lucide-react';
 
@@ -656,8 +652,7 @@ const TOEFLCrashCourse = () => {
       </div>
     </div>
   );
-
-}
+};
 
 export default function Home() {
   return <TOEFLCrashCourse />;
