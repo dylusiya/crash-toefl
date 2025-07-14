@@ -502,6 +502,9 @@ video {
 [hidden]:where(:not([hidden="until-found"])) {
   display: none;
 }
+.absolute {
+  position: absolute;
+}
 .mx-auto {
   margin-left: auto;
   margin-right: auto;
@@ -583,9 +586,6 @@ video {
 }
 .max-w-6xl {
   max-width: 72rem;
-}
-.grow {
-  flex-grow: 1;
 }
 @keyframes spin {
 
