@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Clock, BookOpen, Headphones, Mic, PenTool, Target, Zap, CheckCircle, Star, Timer, Brain, Lightbulb } from 'lucide-react';
 
-const TOEFLCrashCourse = () => {
+export default function Home() {
   const [activeSection, setActiveSection] = useState('overview');
   const [completedTasks, setCompletedTasks] = useState(new Set());
 
@@ -652,8 +652,4 @@ const TOEFLCrashCourse = () => {
       </div>
     </div>
   );
-};
-
-export default function Home() {
-  return <TOEFLCrashCourse />;
 }
