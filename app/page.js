@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useCallback, useEffect } from 'react';
-import { Brain, BookOpen, Headphones, Mic, PenTool, Loader, Star, Target, CheckCircle, AlertCircle, Volume2, VolumeX, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Brain, BookOpen, Headphones, Mic, PenTool, Loader, Star, Target, CheckCircle, AlertCircle, Volume2, VolumeX, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, X, FileText, Copy, Clock } from 'lucide-react';
 
 // ===== TEXT-TO-SPEECH HOOK =====
 const useTextToSpeech = () => {
@@ -345,7 +345,360 @@ const IntegratedListeningSimulator = ({ title, transcript }) => {
   );
 };
 
-// ===== ISOLATED TEXTAREA COMPONENT =====
+// ===== CHEATSHEET COMPONENT =====
+const CheatSheet = ({ section }) => {
+  const [activeTemplate, setActiveTemplate] = useState(0);
+
+  const speakingTemplates = {
+    independent: {
+      title: "Independent Speaking (Task 1)",
+      time: "15 sec prep + 45 sec response",
+      template: `🎯 TEMPLATE:
+      
+**Opening (5-7 seconds)**
+"I believe that [state your opinion] for two main reasons."
+
+**First Reason (15-20 seconds)**
+"First, [reason 1]. For example, [specific example with details]."
+
+**Second Reason (15-20 seconds)**
+"Second, [reason 2]. In my experience, [personal example or explanation]."
+
+**Conclusion (3-5 seconds)**
+"That's why I think [restate opinion]."`,
+      tips: [
+        "🎯 Pick a side immediately - don't be neutral",
+        "⏰ Use simple, clear language to save time",
+        "💡 Personal examples work better than general ones",
+        "🔄 Practice transitional phrases: 'First...', 'Additionally...', 'In conclusion...'"
+      ],
+      phrases: [
+        "In my opinion...", "I strongly believe...", "From my perspective...",
+        "For instance...", "To illustrate...", "A perfect example is...",
+        "Furthermore...", "Additionally...", "What's more...",
+        "In conclusion...", "To sum up...", "That's why I believe..."
+      ]
+    },
+    integratedCampus: {
+      title: "Integrated Campus (Task 2)",
+      time: "Reading + Listening + 30 sec prep + 60 sec response",
+      template: `🎯 TEMPLATE:
+
+**Opening (10 seconds)**
+"The [announcement/proposal] states that [main change]. The student [agrees/disagrees] with this for two reasons."
+
+**First Reason (20-25 seconds)**
+"First, [student's first point]. According to the student, [explanation/example from conversation]."
+
+**Second Reason (20-25 seconds)**
+"Second, [student's second point]. The student mentions that [additional details/example]."
+
+**Conclusion (5 seconds)**
+"These are the reasons why the student [supports/opposes] the change."`,
+      tips: [
+        "📖 Read the announcement quickly - focus on main points",
+        "👂 Listen for the student's opinion and 2 reasons",
+        "📝 Take notes using abbreviations and symbols",
+        "🚫 Don't give your own opinion - only report what you heard"
+      ],
+      phrases: [
+        "The reading passage announces...", "According to the notice...",
+        "The student agrees/disagrees because...", "The student argues that...",
+        "The student explains that...", "As the student points out...",
+        "The student's first concern is...", "Another point the student makes..."
+      ]
+    },
+    integratedAcademic: {
+      title: "Integrated Academic (Task 3)",
+      time: "Reading + Listening + 30 sec prep + 60 sec response",
+      template: `🎯 TEMPLATE:
+
+**Opening (10 seconds)**
+"The reading defines [term/concept] as [brief definition]. The professor provides an example to illustrate this concept."
+
+**Example Explanation (40-45 seconds)**
+"The professor talks about [specific example]. In this case, [explain how the example demonstrates the concept]. This shows [connection to the reading definition]."
+
+**Conclusion (5-10 seconds)**
+"This example clearly demonstrates [restate the concept]."`,
+      tips: [
+        "📚 Focus on the definition and key characteristics in reading",
+        "🎓 Listen for specific examples or studies in the lecture",
+        "🔗 Connect the example to the concept clearly",
+        "⚖️ Balance reading content (30%) and listening content (70%)"
+      ],
+      phrases: [
+        "The reading passage defines...", "According to the text...",
+        "The professor illustrates this by...", "The lecturer gives an example of...",
+        "This demonstrates...", "This example shows how...",
+        "The professor explains that...", "As described in the lecture..."
+      ]
+    }
+  };
+
+  const writingTemplates = {
+    integrated: {
+      title: "Integrated Writing (Task 1)",
+      time: "3 min reading + Listening + 20 min writing",
+      wordCount: "150-225 words",
+      template: `🎯 TEMPLATE (4-5 paragraphs):
+
+**Introduction Paragraph (2-3 sentences)**
+The reading passage discusses [main topic from reading]. However, the lecturer challenges this by [main opposing point from lecture].
+
+**Body Paragraph 1 (3-4 sentences)**
+First, the article claims that [first point from reading]. In contrast, the professor argues that [opposing point from lecture]. The lecturer supports this by [specific example/evidence from lecture].
+
+**Body Paragraph 2 (3-4 sentences)**
+Second, the reading states that [second point from reading]. The lecturer contradicts this by explaining that [opposing point from lecture]. According to the professor, [additional details/evidence].
+
+**Body Paragraph 3 (3-4 sentences)**
+Finally, the passage suggests that [third point from reading]. However, the lecturer disputes this by [opposing point from lecture]. The professor provides [specific example/study] to support this viewpoint.
+
+**Optional Conclusion (1-2 sentences)**
+In summary, the lecturer systematically refutes the main points presented in the reading passage.`,
+      tips: [
+        "📖 Take detailed notes while reading - you can't see it during writing",
+        "👂 Focus on how the lecture contradicts the reading",
+        "🔗 Use clear contrast transitions: 'However', 'In contrast', 'On the other hand'",
+        "⚖️ Balance content: slightly more from lecture than reading",
+        "🚫 Don't express your own opinion - only summarize"
+      ],
+      phrases: [
+        "The reading passage argues that...", "According to the article...",
+        "However, the lecturer challenges...", "In contrast, the professor...",
+        "The speaker contradicts this by...", "The lecturer disputes...",
+        "While the reading claims...", "The professor refutes this by..."
+      ]
+    },
+    independent: {
+      title: "Independent Writing (Task 2)",
+      time: "30 minutes",
+      wordCount: "300+ words (aim for 350-400)",
+      template: `🎯 TEMPLATE (5 paragraphs):
+
+**Introduction Paragraph (3-4 sentences)**
+[Hook sentence about the topic]. This raises the question of whether [restate the question]. While some people believe [opposing view], I strongly believe that [your thesis] for several compelling reasons.
+
+**Body Paragraph 1 (4-5 sentences)**
+First and foremost, [first main reason]. For example, [specific personal example or scenario]. This demonstrates that [explain how example supports your point]. Therefore, [conclude how this supports your thesis].
+
+**Body Paragraph 2 (4-5 sentences)**
+Additionally, [second main reason]. In my personal experience, [detailed personal example]. This situation illustrates [explanation of how example relates to your point]. As a result, [connection back to thesis].
+
+**Body Paragraph 3 (4-5 sentences)**
+Furthermore, [third main reason or address counter-argument]. Some might argue that [opposing viewpoint], but [your refutation]. For instance, [example supporting your refutation]. This clearly shows that [reinforce your position].
+
+**Conclusion Paragraph (3-4 sentences)**
+In conclusion, [restate thesis in different words]. The evidence I have provided demonstrates that [summarize main points]. For these reasons, I firmly believe that [final restatement of position].`,
+      tips: [
+        "🎯 Choose your position within 2 minutes and stick to it",
+        "📝 Spend 5 minutes planning your examples before writing",
+        "💡 Use personal examples - they're easier to develop",
+        "⏰ Leave 3-5 minutes at the end for proofreading",
+        "📏 Aim for 350-400 words for a competitive score",
+        "🔄 Vary your sentence structures and vocabulary"
+      ],
+      phrases: [
+        "In today's society...", "It is widely debated whether...", "There are several reasons why...",
+        "First and foremost...", "Additionally...", "Furthermore...", "Moreover...",
+        "For example...", "In my experience...", "To illustrate...", "A case in point...",
+        "Therefore...", "As a result...", "Consequently...", "This demonstrates that...",
+        "In conclusion...", "To sum up...", "All things considered..."
+      ]
+    }
+  };
+
+  const currentTemplates = section === 'speaking' ? speakingTemplates : writingTemplates;
+  const templateKeys = Object.keys(currentTemplates);
+  const currentTemplate = currentTemplates[templateKeys[activeTemplate]];
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Template copied to clipboard!');
+    }).catch(() => {
+      alert('Could not copy to clipboard. Please select and copy manually.');
+    });
+  };
+
+  const formatTemplate = (template) => {
+    return template.split('\n').map((line, index) => {
+      if (line.trim().startsWith('**') && line.trim().endsWith('**')) {
+        const text = line.replace(/\*\*/g, '');
+        return (
+          <div key={index} className="font-bold text-blue-700 mt-4 mb-2 text-lg">
+            {text}
+          </div>
+        );
+      } else if (line.trim().startsWith('🎯')) {
+        return (
+          <div key={index} className="font-bold text-green-700 text-xl mb-4">
+            {line}
+          </div>
+        );
+      } else if (line.trim() === '') {
+        return <div key={index} className="h-2"></div>;
+      } else {
+        return (
+          <div key={index} className="text-gray-700 leading-relaxed mb-1">
+            {line}
+          </div>
+        );
+      }
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
+      {/* Header */}
+      <div className={`${section === 'speaking' ? 'bg-gradient-to-r from-orange-600 to-red-600' : 'bg-gradient-to-r from-pink-600 to-purple-600'} text-white p-4`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <FileText className="w-6 h-6" />
+            <h3 className="text-xl font-bold">
+              {section === 'speaking' ? '🎤 Speaking' : '✍️ Writing'} Templates & Cheatsheet
+            </h3>
+          </div>
+          <div className="text-sm opacity-75">
+            Quick Reference Guide
+          </div>
+        </div>
+      </div>
+
+      {/* Template Tabs */}
+      <div className="bg-gray-50 border-b border-gray-200">
+        <div className="flex space-x-1 p-2">
+          {templateKeys.map((key, index) => (
+            <button
+              key={key}
+              onClick={() => setActiveTemplate(index)}
+              className={`px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                activeTemplate === index
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white text-gray-600 hover:bg-blue-50'
+              }`}
+            >
+              {currentTemplates[key].title}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-6">
+        {/* Task Info */}
+        <div className="grid md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <div className="flex items-center space-x-2 text-blue-700 font-semibold mb-1">
+              <Clock className="w-4 h-4" />
+              <span>Timing</span>
+            </div>
+            <div className="text-sm text-blue-600">{currentTemplate.time}</div>
+          </div>
+          
+          {currentTemplate.wordCount && (
+            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+              <div className="flex items-center space-x-2 text-green-700 font-semibold mb-1">
+                <PenTool className="w-4 h-4" />
+                <span>Word Count</span>
+              </div>
+              <div className="text-sm text-green-600">{currentTemplate.wordCount}</div>
+            </div>
+          )}
+          
+          <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+            <div className="flex items-center space-x-2 text-purple-700 font-semibold mb-1">
+              <Target className="w-4 h-4" />
+              <span>Task Type</span>
+            </div>
+            <div className="text-sm text-purple-600">
+              {currentTemplate.title.split(' (')[0]}
+            </div>
+          </div>
+        </div>
+
+        {/* Template */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-bold text-gray-800">📋 Template Structure</h4>
+            <button
+              onClick={() => copyToClipboard(currentTemplate.template)}
+              className="flex items-center space-x-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Copy className="w-4 h-4" />
+              <span>Copy Template</span>
+            </button>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 font-mono text-sm overflow-x-auto">
+            {formatTemplate(currentTemplate.template)}
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Tips */}
+          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <h5 className="font-bold text-yellow-800 mb-3 flex items-center">
+              <Star className="w-5 h-5 mr-2" />
+              Pro Tips
+            </h5>
+            <ul className="space-y-2">
+              {currentTemplate.tips.map((tip, index) => (
+                <li key={index} className="text-sm text-yellow-700 leading-relaxed">
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Useful Phrases */}
+          <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+            <h5 className="font-bold text-green-800 mb-3 flex items-center">
+              <Brain className="w-5 h-5 mr-2" />
+              Useful Phrases
+            </h5>
+            <div className="space-y-2">
+              {currentTemplate.phrases.map((phrase, index) => (
+                <span
+                  key={index}
+                  className="inline-block bg-white px-2 py-1 rounded text-xs text-green-700 border border-green-200 mr-2 mb-2 hover:bg-green-100 cursor-pointer transition-colors"
+                  onClick={() => copyToClipboard(phrase)}
+                  title="Click to copy"
+                >
+                  {phrase}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Additional Tips Section */}
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h5 className="font-bold text-blue-800 mb-3">
+            🎯 {section === 'speaking' ? 'Speaking' : 'Writing'} Success Strategies
+          </h5>
+          <div className="text-sm text-blue-700 space-y-2">
+            {section === 'speaking' ? (
+              <>
+                <p>• <strong>Practice daily:</strong> Record yourself for 2-3 minutes daily using these templates</p>
+                <p>• <strong>Time management:</strong> Use prep time to organize 2-3 main points quickly</p>
+                <p>• <strong>Fluency over perfection:</strong> Keep talking even if you make small mistakes</p>
+                <p>• <strong>Personal examples:</strong> They're easier to remember and more convincing</p>
+                <p>• <strong>Pronunciation focus:</strong> Clear speech is more important than perfect grammar</p>
+              </>
+            ) : (
+              <>
+                <p>• <strong>Plan before writing:</strong> Spend 3-5 minutes outlining your response</p>
+                <p>• <strong>Vary sentence structure:</strong> Mix simple, compound, and complex sentences</p>
+                <p>• <strong>Use transitions:</strong> Connect ideas with clear linking words and phrases</p>
+                <p>• <strong>Proofread:</strong> Save 3-5 minutes to check grammar, spelling, and clarity</p>
+                <p>• <strong>Practice typing:</strong> Improve your typing speed to write more content</p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 const IsolatedTextArea = ({ questionId, initialValue = '', onSubmit, section }) => {
   const [value, setValue] = useState(initialValue);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1094,27 +1447,41 @@ export default function TOEFLApp() {
 
         {/* Question Content */}
         {sectionQuestions.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-xl shadow-lg">
-            <Brain className="w-24 h-24 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-600 mb-2">No questions yet</h3>
-            <p className="text-gray-500 mb-6">Select your preferences and click "Generate AI Question" to start practicing!</p>
-            <div className="text-sm text-gray-400 space-y-1">
-              <p>📚 Reading: Factual, Inference, Vocabulary, Summary, Purpose</p>
-              <p>🎧 Listening: Gist, Detail, Function, Attitude, Inference, Connecting Info</p>
-              <p>🎤 Speaking: Independent, Integrated Campus, Integrated Academic</p>
-              <p>✍️ Writing: Integrated, Independent Opinion Essay</p>
-            </div>
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 max-w-md mx-auto">
-              <h4 className="font-semibold text-blue-800 mb-2 flex items-center justify-center">
-                <Headphones className="w-5 h-5 mr-2" />
-                🎧 Audio Features
-              </h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• 🔊 Audio simulation in Listening section</li>
-                <li>• 🎤 Audio content for Integrated Speaking tasks</li>
-                <li>• ✍️ Audio content for Integrated Writing tasks</li>
-                <li>• ▶️ Play, stop, and replay controls</li>
-              </ul>
+          <div>
+            {/* Cheatsheet for Speaking and Writing */}
+            {(activeSection === 'speaking' || activeSection === 'writing') && (
+              <div className="mb-8">
+                <CheatSheet section={activeSection} />
+              </div>
+            )}
+            
+            <div className="text-center py-16 bg-white rounded-xl shadow-lg">
+              <Brain className="w-24 h-24 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-600 mb-2">No questions yet</h3>
+              <p className="text-gray-500 mb-6">
+                {(activeSection === 'speaking' || activeSection === 'writing') 
+                  ? `Check out the templates above, then generate questions to start practicing!`
+                  : `Select your preferences and click "Generate AI Question" to start practicing!`
+                }
+              </p>
+              <div className="text-sm text-gray-400 space-y-1">
+                <p>📚 Reading: Factual, Inference, Vocabulary, Summary, Purpose</p>
+                <p>🎧 Listening: Gist, Detail, Function, Attitude, Inference, Connecting Info</p>
+                <p>🎤 Speaking: Independent, Integrated Campus, Integrated Academic</p>
+                <p>✍️ Writing: Integrated, Independent Opinion Essay</p>
+              </div>
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 max-w-md mx-auto">
+                <h4 className="font-semibold text-blue-800 mb-2 flex items-center justify-center">
+                  <Headphones className="w-5 h-5 mr-2" />
+                  🎧 Audio Features
+                </h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• 🔊 Audio simulation in Listening section</li>
+                  <li>• 🎤 Audio content for Integrated Speaking tasks</li>
+                  <li>• ✍️ Audio content for Integrated Writing tasks</li>
+                  <li>• ▶️ Play, stop, and replay controls</li>
+                </ul>
+              </div>
             </div>
           </div>
         ) : currentQuestion ? (
