@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useCallback, useEffect } from 'react';
-import { Brain, BookOpen, Headphones, Mic, PenTool, Loader, Star, Target, CheckCircle, AlertCircle, Volume2, VolumeX, Play, Pause, RotateCcw } from 'lucide-react';
+import { Brain, BookOpen, Headphones, Mic, PenTool, Loader, Star, Target, CheckCircle, AlertCircle, Volume2, VolumeX, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 // ===== TEXT-TO-SPEECH HOOK =====
 const useTextToSpeech = () => {
@@ -407,6 +407,80 @@ const IsolatedTextArea = ({ questionId, initialValue = '', onSubmit, section }) 
   );
 };
 
+// ===== QUESTION TABS COMPONENT =====
+const QuestionTabs = ({ questions, activeQuestionIndex, onTabChange, onTabClose, activeSection }) => {
+  const sectionQuestions = questions.filter(q => q.section === activeSection);
+  
+  if (sectionQuestions.length === 0) return null;
+
+  return (
+    <div className="bg-white border-b border-gray-200 mb-6">
+      <div className="flex items-center space-x-2 px-4 py-2 overflow-x-auto">
+        {sectionQuestions.map((question, index) => {
+          const isActive = index === activeQuestionIndex;
+          const questionNumber = index + 1;
+          
+          return (
+            <div
+              key={question.id}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-t-lg border-b-2 transition-all whitespace-nowrap ${
+                isActive
+                  ? 'bg-blue-50 border-blue-500 text-blue-700'
+                  : 'bg-gray-50 border-transparent text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <button
+                onClick={() => onTabChange(index)}
+                className="flex items-center space-x-2 font-medium"
+              >
+                <span>Question {questionNumber}</span>
+                {question.type && (
+                  <span className="text-xs bg-white px-2 py-1 rounded">
+                    {question.type}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => onTabClose(question.id)}
+                className={`p-1 rounded-full hover:bg-red-100 transition-colors ${
+                  isActive ? 'text-red-600' : 'text-gray-400 hover:text-red-600'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* Navigation arrows for better UX when many tabs */}
+      {sectionQuestions.length > 1 && (
+        <div className="flex justify-center space-x-4 py-2 bg-gray-50 border-t border-gray-200">
+          <button
+            onClick={() => onTabChange(Math.max(0, activeQuestionIndex - 1))}
+            disabled={activeQuestionIndex === 0}
+            className="flex items-center space-x-2 px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Previous
+          </button>
+          <span className="text-sm text-gray-500 py-1">
+            {activeQuestionIndex + 1} of {sectionQuestions.length}
+          </span>
+          <button
+            onClick={() => onTabChange(Math.min(sectionQuestions.length - 1, activeQuestionIndex + 1))}
+            disabled={activeQuestionIndex === sectionQuestions.length - 1}
+            className="flex items-center space-x-2 px-3 py-1 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ===== MAIN TOEFL APP COMPONENT =====
 export default function TOEFLApp() {
   // ===== STATE MANAGEMENT =====
@@ -418,6 +492,7 @@ export default function TOEFLApp() {
   const [isRating, setIsRating] = useState({});
   const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
   const [selectedQuestionType, setSelectedQuestionType] = useState('');
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
 
   // ===== SECTIONS CONFIG =====
   const sections = {
@@ -502,6 +577,55 @@ export default function TOEFLApp() {
     rateAnswer(questionId, userAnswer);
   }, [userAnswers, rateAnswer]);
 
+  // ===== TAB HANDLERS =====
+  const handleTabChange = useCallback((index) => {
+    setActiveQuestionIndex(index);
+  }, []);
+
+  const handleTabClose = useCallback((questionId) => {
+    const sectionQuestions = questions.filter(q => q.section === activeSection);
+    const questionIndex = sectionQuestions.findIndex(q => q.id === questionId);
+    
+    // Remove the question
+    setQuestions(prev => prev.filter(q => q.id !== questionId));
+    
+    // Clean up related state
+    setUserAnswers(prev => {
+      const newAnswers = { ...prev };
+      delete newAnswers[questionId];
+      return newAnswers;
+    });
+    
+    setAiReviews(prev => {
+      const newReviews = { ...prev };
+      delete newReviews[questionId];
+      return newReviews;
+    });
+    
+    setIsRating(prev => {
+      const newRating = { ...prev };
+      delete newRating[questionId];
+      return newRating;
+    });
+    
+    // Adjust active question index
+    const remainingQuestions = sectionQuestions.length - 1;
+    if (remainingQuestions === 0) {
+      setActiveQuestionIndex(0);
+    } else if (questionIndex === activeQuestionIndex) {
+      // If closing the active tab, move to the previous one or stay at 0
+      setActiveQuestionIndex(Math.max(0, activeQuestionIndex - 1));
+    } else if (questionIndex < activeQuestionIndex) {
+      // If closing a tab before the active one, shift index back
+      setActiveQuestionIndex(activeQuestionIndex - 1);
+    }
+  }, [questions, activeSection, activeQuestionIndex]);
+
+  // Reset active question index when changing sections
+  useEffect(() => {
+    setActiveQuestionIndex(0);
+  }, [activeSection]);
+
   // ===== AI FUNCTIONS =====
   const generateQuestion = async () => {
     setIsGenerating(true);
@@ -519,7 +643,12 @@ export default function TOEFLApp() {
       if (!response.ok) throw new Error('Failed to generate question');
 
       const newQuestion = await response.json();
-      setQuestions(prev => [...prev, { ...newQuestion, id: Date.now() }]);
+      const questionWithId = { ...newQuestion, id: Date.now() };
+      setQuestions(prev => [...prev, questionWithId]);
+      
+      // Set the new question as active
+      const sectionQuestions = questions.filter(q => q.section === activeSection);
+      setActiveQuestionIndex(sectionQuestions.length);
     } catch (error) {
       console.error('Error generating question:', error);
       alert('Failed to generate question. Please try again.');
@@ -557,7 +686,7 @@ export default function TOEFLApp() {
     const isSpeakingOrWriting = question.section === 'speaking' || question.section === 'writing';
 
     return (
-      <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 mb-6 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
         {/* Header */}
         <div className={`${sections[activeSection].color} text-white p-4`}>
           <div className="flex items-center justify-between">
@@ -823,6 +952,10 @@ export default function TOEFLApp() {
     );
   });
 
+  // Get current section questions and active question
+  const sectionQuestions = questions.filter(q => q.section === activeSection);
+  const currentQuestion = sectionQuestions[activeQuestionIndex];
+
   // ===== MAIN RENDER =====
   return (
     <div className="min-h-screen bg-gray-50">
@@ -843,6 +976,11 @@ export default function TOEFLApp() {
               >
                 {section.icon}
                 <span>{section.title}</span>
+                {questions.filter(q => q.section === key).length > 0 && (
+                  <span className="bg-white bg-opacity-20 text-xs px-2 py-1 rounded-full">
+                    {questions.filter(q => q.section === key).length}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -945,8 +1083,17 @@ export default function TOEFLApp() {
           </div>
         </div>
 
-        {/* Questions */}
-        {questions.filter(q => q.section === activeSection).length === 0 ? (
+        {/* Question Tabs */}
+        <QuestionTabs
+          questions={questions}
+          activeQuestionIndex={activeQuestionIndex}
+          onTabChange={handleTabChange}
+          onTabClose={handleTabClose}
+          activeSection={activeSection}
+        />
+
+        {/* Question Content */}
+        {sectionQuestions.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-xl shadow-lg">
             <Brain className="w-24 h-24 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-gray-600 mb-2">No questions yet</h3>
@@ -970,16 +1117,11 @@ export default function TOEFLApp() {
               </ul>
             </div>
           </div>
-        ) : (
-          <div>
-            {questions
-              .filter(q => q.section === activeSection)
-              .map(question => (
-                <QuestionCard key={question.id} question={question} />
-              ))
-            }
+        ) : currentQuestion ? (
+          <div className="mb-6">
+            <QuestionCard question={currentQuestion} />
           </div>
-        )}
+        ) : null}
 
         {/* Stats */}
         {questions.length > 0 && (
