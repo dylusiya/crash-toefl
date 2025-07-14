@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
+  // Remove 'output: export' - this disables API routes
+  trailingSlash: false,  // Change to false for better API routing
   images: {
     unoptimized: true
+  },
+  experimental: {
+    serverComponentsExternalPackages: ['@google/generative-ai']
   }
 }
 
