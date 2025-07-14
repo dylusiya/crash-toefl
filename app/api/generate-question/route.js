@@ -81,78 +81,78 @@ export async function POST(request) {
       },
 
 listening: {
-  'Gist': `Create a TOEFL Listening Gist question with a realistic conversation. Return only this JSON:
+  'Gist': `Create a TOEFL Listening Gist question with a realistic conversation. Create an original, unique conversation each time. Return only this JSON:
 {
   "section": "listening",
   "type": "Gist Question", 
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to a conversation between a student and academic advisor.",
-  "transcript": "Student: Hi, I need help choosing my courses for next semester. I'm majoring in biology but I'm also interested in environmental science. Advisor: What's your long-term goal? Student: I want to get into medical school, but I also care about environmental issues. Advisor: I'd recommend taking Biology 301 first since it's required for pre-med. You could take Environmental Science 200 as an elective. That covers both your interests. Student: That sounds perfect. When are those classes offered? Advisor: Biology 301 is Tuesday and Thursday at 10 AM. Environmental Science 200 is Monday, Wednesday, Friday at 2 PM. Student: Great, I'll register for both. Thanks for your help!",
+  "scenario": "🎧 Listen to a conversation between a student and [academic advisor/professor/librarian/campus staff member].",
+  "transcript": "[Create a realistic 150-word conversation between a student and staff member about academic matters like course selection, research help, campus services, or academic problems. Make it completely original with specific details, names, times, and realistic dialogue.]",
   "question": "What is the main purpose of this conversation?",
-  "options": ["A) To discuss environmental science career opportunities", "B) To get advice on course selection for next semester", "C) To change majors from biology to environmental science", "D) To schedule a meeting with professors"],
-  "correctAnswer": "B"
+  "options": ["A) [Purpose related to the conversation]", "B) [Different academic purpose]", "C) [Wrong but plausible purpose]", "D) [Unrelated academic purpose]"],
+  "correctAnswer": "A"
 }`,
 
-  'Detail': `Create a TOEFL Listening Detail question with a realistic lecture. Return only this JSON:
+  'Detail': `Create a TOEFL Listening Detail question with a realistic lecture. Create completely original content. Return only this JSON:
 {
   "section": "listening",
   "type": "Detail Question",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to a lecture about renewable energy.",
-  "transcript": "Professor: Today we'll discuss solar panel efficiency. Modern solar panels convert about 20 to 22 percent of sunlight into electricity. This might seem low, but it's actually a huge improvement. In the 1950s, early solar panels only achieved 6 percent efficiency. The breakthrough came in the 1970s when scientists developed silicon-based cells. Currently, researchers are working on panels that could reach 30 percent efficiency within the next decade. The key is using new materials like perovskite crystals combined with traditional silicon.",
-  "question": "According to the professor, what was the efficiency of solar panels in the 1950s?",
-  "options": ["A) 20 to 22 percent", "B) 30 percent", "C) 6 percent", "D) The information was not provided"],
-  "correctAnswer": "C"
+  "scenario": "🎧 Listen to a lecture about [create an original academic topic].",
+  "transcript": "[Create an original 180-word lecture with specific facts, numbers, dates, or examples. Choose a random academic subject like biology, history, psychology, environmental science, etc. Include specific details that can be questioned.]",
+  "question": "According to the professor, [ask about a specific detail from your created lecture]?",
+  "options": ["A) [Correct specific detail]", "B) [Different number/fact from lecture]", "C) [Plausible but wrong detail]", "D) [Unrelated information]"],
+  "correctAnswer": "A"
 }`,
 
-  'Attitude': `Create a TOEFL Listening Attitude question with clear speaker emotions. Return only this JSON:
+  'Attitude': `Create a TOEFL Listening Attitude question with clear speaker emotions. Create original dialogue. Return only this JSON:
 {
   "section": "listening",
   "type": "Attitude Question",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to a conversation between two students about a group project.",
-  "transcript": "Student A: So how do you feel about working with Jake on our history project? Student B: Honestly? I'm not thrilled about it. Last semester he barely contributed to our economics project. He showed up to maybe half the meetings and his research was pretty superficial. Student A: That's frustrating. Maybe he's changed though? Student B: I doubt it. I heard from Maria that he did the same thing in her psychology class. I just hope he doesn't drag our grade down this time.",
-  "question": "What is Student B's attitude toward working with Jake?",
-  "options": ["A) Enthusiastic and optimistic", "B) Concerned and skeptical", "C) Neutral and indifferent", "D) Angry and hostile"],
-  "correctAnswer": "B"
+  "scenario": "🎧 Listen to a conversation between [two students/student and teacher] about [academic topic].",
+  "transcript": "[Create an original conversation where one speaker clearly expresses a specific attitude (frustrated, excited, worried, disappointed, etc.) about an academic situation. Make the emotion clear through word choice and context.]",
+  "question": "What is [speaker's] attitude toward [the topic discussed]?",
+  "options": ["A) [Correct attitude expressed]", "B) [Opposite attitude]", "C) [Different emotion]", "D) [Neutral/unrelated emotion]"],
+  "correctAnswer": "A"
 }`,
 
-  'Function': `Create a TOEFL Listening Function question about why something was said. Return only this JSON:
+  'Function': `Create a TOEFL Listening Function question about why something was said. Generate original content. Return only this JSON:
 {
   "section": "listening",
   "type": "Function Question",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to part of a lecture about ancient civilizations.",
-  "transcript": "Professor: The Mesopotamians developed the first known writing system around 3200 BCE. Now, you might be thinking - wait, what about cave paintings? Those are much older. But here's the key difference: cave paintings told stories or recorded events, while cuneiform writing represented spoken language. It could record laws, business transactions, and even literature. This is why we consider cuneiform the first true writing system.",
-  "question": "Why does the professor mention cave paintings?",
-  "options": ["A) To explain how cuneiform writing developed", "B) To contrast them with true writing systems", "C) To show they were superior to cuneiform", "D) To demonstrate Mesopotamian artistic skills"],
-  "correctAnswer": "B"
+  "scenario": "🎧 Listen to part of a lecture about [original academic topic].",
+  "transcript": "[Create an original lecture where the professor mentions a specific example, comparison, or detail for a clear rhetorical purpose (to illustrate, to contrast, to emphasize, etc.). Make the purpose obvious.]",
+  "question": "Why does the professor mention [specific detail from your lecture]?",
+  "options": ["A) [Correct rhetorical purpose]", "B) [Different purpose]", "C) [Wrong interpretation]", "D) [Unrelated purpose]"],
+  "correctAnswer": "A"
 }`,
 
-  'Inference': `Create a TOEFL Listening Inference question where the answer is implied. Return only this JSON:
+  'Inference': `Create a TOEFL Listening Inference question where the answer is implied. Generate fresh content. Return only this JSON:
 {
   "section": "listening",
   "type": "Inference Question",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to a conversation between a student and librarian.",
-  "transcript": "Student: Excuse me, I'm looking for books about marine biology for my research paper. Librarian: Sure! What specific aspect are you focusing on? Student: I'm writing about coral reef ecosystems and how climate change affects them. Librarian: Perfect. Most of our marine biology books are on the third floor, but I'd recommend checking our digital database first. We just got access to some recent research journals that have current data on coral bleaching. Student: That sounds exactly like what I need. How do I access those? Librarian: I'll write down the database name and login information for you.",
-  "question": "What can be inferred about the student's research paper?",
-  "options": ["A) It focuses on general marine biology topics", "B) It requires up-to-date scientific information", "C) It's about historical ocean exploration", "D) It only needs basic textbook information"],
-  "correctAnswer": "B"
+  "scenario": "🎧 Listen to a conversation between [student and academic staff] about [academic topic].",
+  "transcript": "[Create an original conversation that implies information without stating it directly. The conversation should suggest something about the student's situation, needs, or plans through context clues.]",
+  "question": "What can be inferred about [aspect from conversation]?",
+  "options": ["A) [Logical inference from context]", "B) [Too specific/not supported]", "C) [Contradicts the conversation]", "D) [Not implied by evidence]"],
+  "correctAnswer": "A"
 }`,
 
-  'Connecting Info': `Create a TOEFL Listening Connecting Information question about relationships between ideas. Return only this JSON:
+  'Connecting Info': `Create a TOEFL Listening Connecting Information question about relationships between ideas. Generate original academic content. Return only this JSON:
 {
   "section": "listening",
   "type": "Connecting Information Question",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to part of a biology lecture about plant adaptation.",
-  "transcript": "Professor: Plants have developed fascinating adaptations to survive in different environments. Take desert plants, for example. Cacti have thick, waxy stems that store water and small spines instead of leaves to reduce water loss. In contrast, rainforest plants face the opposite challenge - too much water and competition for sunlight. So they've evolved differently. Many have large, broad leaves to capture maximum sunlight, and some grow as vines to climb toward the light. Interestingly, both environments led to similar solutions in some cases. Both desert and rainforest plants often have specialized root systems - cacti have shallow, widespread roots to catch rare rainfall, while many rainforest plants have shallow roots too, but to quickly absorb nutrients from decomposing matter on the forest floor.",
-  "question": "According to the professor, how are the root systems of desert and rainforest plants similar?",
-  "options": ["A) Both are deep to reach groundwater", "B) Both are shallow but for different reasons", "C) Both store water in their roots", "D) Both compete for the same nutrients"],
-  "correctAnswer": "B"
+  "scenario": "🎧 Listen to part of a lecture about [original academic topic with comparisons].",
+  "transcript": "[Create an original lecture that compares and contrasts different concepts, showing both similarities and differences. Use specific examples that demonstrate relationships between ideas.]",
+  "question": "According to the professor, how are [two concepts from lecture] similar?",
+  "options": ["A) [Correct similarity mentioned]", "B) [Difference, not similarity]", "C) [Wrong relationship]", "D) [Unrelated comparison]"],
+  "correctAnswer": "A"
 }`
-},
+}
 
       speaking: {
         'Independent': `Create a TOEFL Speaking Independent task. Return only this JSON:
