@@ -15,31 +15,12 @@ export async function POST(request) {
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // Get random question type if not specified
+    // Authentic TOEFL question types from official practice test
     const questionTypes = {
-      reading: [
-        "Factual",
-        "Inference",
-        "Vocabulary",
-        "Summary",
-        "Insertion",
-        "Purpose",
-      ],
-      listening: [
-        "Gist",
-        "Detail",
-        "Function",
-        "Attitude",
-        "Inference",
-        "Connecting Info",
-      ],
-      speaking: [
-        "Independent",
-        "Integrated Academic",
-        "Integrated Campus",
-        "Integrated Lecture",
-      ],
-      writing: ["Integrated", "Independent Opinion Essay"],
+      reading: ["Factual", "Inference", "Vocabulary", "Summary", "Purpose"],
+      listening: ["Gist", "Detail", "Function", "Attitude", "Inference", "Connecting Info"],
+      speaking: ["Independent", "Integrated Campus", "Integrated Academic", "Summary"],
+      writing: ["Integrated", "Academic Discussion"],
     };
 
     const selectedType =
@@ -50,197 +31,275 @@ export async function POST(request) {
 
     const prompts = {
       reading: {
-        Factual: `Create a TOEFL Reading Factual question with original content. Return only this JSON:
+        Factual: `Create a TOEFL Reading Factual question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "reading",
-  "type": "Factual Question",
+  "type": "Factual",
   "difficulty": "${difficulty}",
-  "passage": "[Write an original 200-word academic passage about science, history, archaeology, psychology, or environmental studies. Include specific facts, dates, numbers, and details that can be questioned.]",
-  "question": "According to the passage, [create a specific factual question about dates, numbers, locations, or processes mentioned in your passage]?",
-  "options": ["A) [Correct fact from passage]", "B) [Wrong but plausible fact]", "C) [Different detail from passage]", "D) [Unrelated but realistic fact]"],
+  "passage": "[Write an original 300-400 word academic passage about science, history, politics, or environment. Include specific facts, dates, processes, and details that can be directly questioned. Write at university level with complex sentence structures.]",
+  "question": "According to paragraph [1-4], [specific topic from passage] [effects/affects/influences] [something] primarily by",
+  "options": [
+    "A [Complete answer choice that directly states what the passage says]",
+    "B [Plausible but incorrect interpretation of the information]", 
+    "C [Different detail from passage that doesn't answer the question]",
+    "D [Information not mentioned in the passage]"
+  ],
   "correctAnswer": "A"
 }`,
 
-        Inference: `Create a TOEFL Reading Inference question with original content. Return only this JSON:
+        Inference: `Create a TOEFL Reading Inference question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "reading",
-  "type": "Inference Question", 
+  "type": "Inference", 
   "difficulty": "${difficulty}",
-  "passage": "[Write an original 200-word academic passage that implies information without stating it directly. The passage should suggest conclusions through evidence and context.]",
-  "question": "What can be inferred about [topic from your passage] from the passage?",
-  "options": ["A) [Logical inference supported by evidence]", "B) [Too extreme or absolute conclusion]", "C) [Contradicts information in passage]", "D) [Not supported by any evidence]"],
+  "passage": "[Write an original 300-400 word academic passage that strongly implies conclusions through evidence and context without stating them directly. Include data, examples, and patterns that lead to logical inferences.]",
+  "question": "What can be inferred from paragraph [1-4] about [specific topic from passage]?",
+  "options": [
+    "A [Logical conclusion strongly supported by evidence in the passage]",
+    "B [Too extreme or absolute conclusion not fully supported]", 
+    "C [Contradicts what the passage implies]",
+    "D [Not supported by any evidence in the passage]"
+  ],
   "correctAnswer": "A"
 }`,
 
-        Vocabulary: `Create a TOEFL Reading Vocabulary question with original content. Return only this JSON:
+        Vocabulary: `Create a TOEFL Reading Vocabulary question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "reading",
-  "type": "Vocabulary Question",
+  "type": "Vocabulary",
   "difficulty": "${difficulty}", 
-  "passage": "[Write an original 200-word academic passage that includes a challenging vocabulary word used in context. Choose words like 'proliferate', 'substantiate', 'mitigate', 'facilitate', etc.]",
-  "question": "The word '[choose specific vocab word from your passage]' in the passage is closest in meaning to:",
-  "options": ["A) [Correct synonym]", "B) [Similar but incorrect meaning]", "C) [Opposite meaning]", "D) [Completely unrelated word]"],
+  "passage": "[Write an original 300-400 word academic passage that includes advanced vocabulary words used in clear context. Use words like: proliferate, substantial, facilitate, undermine, enhance, comprise, etc.]",
+  "question": "The word '[specific challenging word from your passage]' in the passage is closest in meaning to",
+  "options": [
+    "A [correct synonym]",
+    "B [word with similar but different meaning]", 
+    "C [word with opposite meaning]",
+    "D [completely unrelated word]"
+  ],
   "correctAnswer": "A"
 }`,
 
-        Summary: `Create a TOEFL Reading Summary question with original content. Return only this JSON:
+        Summary: `Create a TOEFL Reading Summary question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "reading",
-  "type": "Summary Question",
+  "type": "Summary",
   "difficulty": "${difficulty}",
-  "passage": "[Write an original 250-word academic passage with 3-4 clear main points and supporting details about a scientific, historical, or social topic.]",
-  "question": "An introductory sentence for a brief summary is provided below. Complete the summary by selecting the THREE answer choices that express the most important ideas in the passage.",
-  "options": ["A) [First major point from passage]", "B) [Second major point from passage]", "C) [Third major point from passage]", "D) [Minor supporting detail]", "E) [Specific example, not main idea]", "F) [Information not in passage]"],
+  "passage": "[Write an original 350-450 word academic passage with 3-4 clear main points and supporting details about a complex academic topic.]",
+  "question": "Directions: An introductory sentence for a brief summary of the passage is provided below. Complete the summary by selecting the THREE answer choices that express the most important ideas in the passage. Some sentences do not belong in the summary because they express ideas that are not presented in the passage or are minor ideas in the passage. This question is worth 2 points.",
+  "options": [
+    "A [First major point that captures essential information]",
+    "B [Second major point that captures essential information]", 
+    "C [Third major point that captures essential information]",
+    "D [Minor supporting detail, not a main idea]",
+    "E [Specific example rather than main concept]",
+    "F [Information not presented in the passage]"
+  ],
   "correctAnswer": "A, B, C"
 }`,
 
-        Purpose: `Create a TOEFL Reading Purpose question with original content. Return only this JSON:
+        Purpose: `Create a TOEFL Reading Purpose question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "reading",
-  "type": "Purpose Question",
+  "type": "Purpose",
   "difficulty": "${difficulty}",
-  "passage": "[Write an original 200-word academic passage where the author uses a specific example, analogy, or detail to serve a clear rhetorical purpose.]",
+  "passage": "[Write an original 300-400 word academic passage where the author uses specific examples, analogies, or details to serve clear rhetorical purposes.]",
   "question": "Why does the author mention [specific detail/example from your passage]?",
-  "options": ["A) [Correct rhetorical purpose - to illustrate, support, or clarify the main point]", "B) [To contradict previous information]", "C) [To introduce unrelated topic]", "D) [To provide unnecessary background]"],
+  "options": [
+    "A To [correct rhetorical purpose - illustrate, support, contrast, or clarify the main point]",
+    "B To [incorrect but plausible purpose]", 
+    "C To [purpose that contradicts the passage's intent]",
+    "D To [completely unrelated purpose]"
+  ],
   "correctAnswer": "A"
-}`,
+}`
       },
 
       listening: {
-        Gist: `Create a TOEFL Listening Gist question with completely original content. Return only this JSON:
+        Gist: `Create a TOEFL Listening Gist question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "listening",
-  "type": "Gist Question", 
+  "type": "Gist", 
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to a conversation between a student and [academic advisor/professor/librarian/registrar].",
-  "transcript": "[Create a completely original, realistic 150-word conversation between a student and university staff member. Topics could include: course selection, research assistance, library resources, academic planning, study abroad, internships, graduation requirements, etc. Include specific details like course names, times, requirements, and realistic dialogue.]",
-  "question": "What is the main purpose of this conversation?",
-  "options": ["A) [Main purpose based on your conversation]", "B) [Secondary topic mentioned in conversation]", "C) [Different academic purpose]", "D) [Unrelated academic activity]"],
+  "scenario": "Listen to a conversation between a student and [professor/academic advisor/librarian/registrar].",
+  "transcript": "[Create a completely original, realistic 200-250 word conversation with natural dialogue. Include: realistic university situations (office hours, course planning, research help, academic issues), specific course names/requirements, natural speech patterns with some hesitation and informal language, clear main purpose.]",
+  "question": "Why does the student go to see the [professor/advisor/etc.]?",
+  "options": [
+    "A To [main purpose clearly stated in conversation]",
+    "B To [secondary topic mentioned but not main purpose]", 
+    "C To [different plausible academic purpose]",
+    "D To [unrelated academic activity]"
+  ],
   "correctAnswer": "A"
 }`,
 
-        Detail: `Create a TOEFL Listening Detail question with original content. Return only this JSON:
+        Detail: `Create a TOEFL Listening Detail question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "listening",
-  "type": "Detail Question",
+  "type": "Detail",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to a lecture about [choose: biology, chemistry, history, psychology, environmental science, archaeology, or astronomy].",
-  "transcript": "[Create a completely original 180-word lecture with specific facts, numbers, dates, percentages, or examples. Include concrete details that can be questioned, such as years, statistics, scientific processes, historical events, or research findings.]",
-  "question": "According to the professor, [ask about a specific detail from your lecture - numbers, dates, processes, or examples]?",
-  "options": ["A) [Correct specific detail from lecture]", "B) [Different number/fact mentioned in lecture]", "C) [Plausible but incorrect detail]", "D) [Information not mentioned in lecture]"],
+  "scenario": "Listen to part of a lecture in a [Biology/Chemistry/History/Psychology/Environmental Science] class.",
+  "transcript": "[Create a completely original 250-300 word academic lecture with: specific facts, numbers, dates, percentages, or processes, clear examples and explanations, natural professorial speaking style, technical vocabulary appropriate to the field.]",
+  "question": "According to the professor, what [specific detail question about facts, numbers, processes, or examples from lecture]?",
+  "options": [
+    "A [Correct specific detail explicitly mentioned in lecture]",
+    "B [Different fact/number that was mentioned in lecture]", 
+    "C [Plausible but incorrect detail not mentioned]",
+    "D [Information clearly not mentioned in lecture]"
+  ],
   "correctAnswer": "A"
 }`,
 
-        Function: `Create a TOEFL Listening Function question with original content. Return only this JSON:
+        Function: `Create a TOEFL Listening Function question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "listening",
-  "type": "Function Question",
+  "type": "Function",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to part of a lecture about [create original academic topic].",
-  "transcript": "[Create an original lecture where the professor mentions a specific example, makes a comparison, or references something for a clear rhetorical purpose. The purpose should be obvious - to illustrate a point, to contrast concepts, to emphasize importance, etc.]",
-  "question": "Why does the professor mention [specific detail from your lecture]?",
-  "options": ["A) [Correct rhetorical purpose]", "B) [Different but plausible purpose]", "C) [Misinterpretation of purpose]", "D) [Unrelated purpose]"],
+  "scenario": "Listen to part of a discussion in a [subject] class.",
+  "transcript": "[Create an original lecture/discussion where the professor uses a specific example, analogy, or reference for a clear rhetorical purpose - to illustrate a concept, contrast ideas, emphasize importance, etc.]",
+  "question": "Why does the professor mention [specific detail from your transcript]?",
+  "options": [
+    "A To [correct rhetorical function - illustrate, contrast, emphasize, etc.]",
+    "B To [different but plausible function]", 
+    "C To [misinterpretation of the function]",
+    "D To [completely unrelated function]"
+  ],
   "correctAnswer": "A"
 }`,
 
-        Attitude: `Create a TOEFL Listening Attitude question with original content. Return only this JSON:
+        Attitude: `Create a TOEFL Listening Attitude question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "listening",
-  "type": "Attitude Question",
+  "type": "Attitude",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to a conversation between [two students/student and professor] about [academic topic].",
-  "transcript": "[Create an original conversation where one speaker clearly expresses a specific attitude - frustrated, excited, concerned, skeptical, enthusiastic, disappointed, etc. Make the emotion clear through word choice, tone indicators, and context.]",
-  "question": "What is [speaker's name/the student's/the professor's] attitude toward [topic discussed in conversation]?",
-  "options": ["A) [Correct attitude clearly expressed]", "B) [Opposite emotional response]", "C) [Different but related emotion]", "D) [Neutral or unrelated feeling]"],
+  "scenario": "Listen to a conversation between [two students/student and professor].",
+  "transcript": "[Create an original conversation where one speaker clearly expresses attitude through word choice, tone indicators like 'unfortunately', 'excellent', 'I'm concerned that', etc. Make the emotion obvious.]",
+  "question": "What is [the student's/the professor's] attitude toward [topic from conversation]?",
+  "options": [
+    "A [Correct attitude clearly expressed in conversation]",
+    "B [Opposite emotional response]", 
+    "C [Different but related emotion]",
+    "D [Neutral or unrelated attitude]"
+  ],
   "correctAnswer": "A"
 }`,
 
-        Inference: `Create a TOEFL Listening Inference question with original content. Return only this JSON:
+        Inference: `Create a TOEFL Listening Inference question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "listening",
-  "type": "Inference Question",
+  "type": "Inference",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to a conversation between [student and academic staff] about [academic matter].",
-  "transcript": "[Create an original conversation that implies information through context clues rather than stating it directly. The conversation should suggest something about the student's situation, academic status, plans, or needs through indirect evidence.]",
+  "scenario": "Listen to a conversation between a student and [academic staff member].",
+  "transcript": "[Create an original conversation that implies information through context clues - student's situation, academic standing, future plans, or needs - without stating directly.]",
   "question": "What can be inferred about [aspect related to conversation]?",
-  "options": ["A) [Logical inference supported by context clues]", "B) [Too specific, not clearly implied]", "C) [Contradicts conversation implications]", "D) [Not supported by conversation evidence]"],
+  "options": [
+    "A [Logical inference strongly supported by context clues]",
+    "B [Inference that goes too far beyond evidence]", 
+    "C [Contradicts what conversation implies]",
+    "D [Not supported by conversation evidence]"
+  ],
   "correctAnswer": "A"
 }`,
 
-        "Connecting Info": `Create a TOEFL Listening Connecting Information question with original content. Return only this JSON:
+        "Connecting Info": `Create a TOEFL Listening Connecting Information question using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "listening",
-  "type": "Connecting Information Question",
+  "type": "Connecting Info",
   "difficulty": "${difficulty}",
-  "scenario": "🎧 Listen to part of a lecture about [create topic involving comparisons or relationships].",
-  "transcript": "[Create an original lecture that compares and contrasts different concepts, processes, or phenomena. Include clear similarities and differences between at least two related topics, with specific examples demonstrating the relationships.]",
-  "question": "According to the professor, how are [two concepts from your lecture] similar/different?",
-  "options": ["A) [Correct relationship mentioned in lecture]", "B) [Difference instead of similarity, or vice versa]", "C) [Incorrect relationship]", "D) [Relationship not discussed in lecture]"],
+  "scenario": "Listen to part of a lecture about [topic that involves comparisons/relationships].",
+  "transcript": "[Create an original lecture that clearly compares/contrasts different concepts, processes, or phenomena with specific examples showing relationships.]",
+  "question": "According to the professor, how are [two concepts from lecture] similar?",
+  "options": [
+    "A [Correct similarity/difference mentioned in lecture]",
+    "B [Correct information but answers wrong question]", 
+    "C [Incorrect relationship]",
+    "D [Relationship not discussed in lecture]"
+  ],
   "correctAnswer": "A"
 }`
       },
 
       speaking: {
-        Independent: `Create a TOEFL Speaking Independent task with original content. Return only this JSON:
+        Independent: `Create a TOEFL Speaking Independent task using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "speaking",
-  "type": "Independent Speaking Task",
+  "type": "Independent",
   "difficulty": "${difficulty}",
-  "question": "[Create an original opinion question about preferences, experiences, or choices. Topics could include: study methods, technology use, travel, work environments, social activities, learning styles, etc. Format: 'Some people prefer X, while others prefer Y. Which do you prefer and why?']",
+  "question": "Some people [preference/behavior A], while others [preference/behavior B]. Which do you think is better and why? Use specific reasons and examples to support your opinion.",
   "timeLimit": "15 seconds preparation, 45 seconds response",
-  "tips": "State your preference clearly, give 2-3 reasons, include personal examples"
+  "tips": "Choose your position quickly, give 2-3 clear reasons with specific examples"
 }`,
 
-        "Integrated Campus": `Create a TOEFL Speaking Integrated Campus task with original content. Return only this JSON:
+        "Integrated Campus": `Create a TOEFL Speaking Integrated Campus task using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "speaking", 
-  "type": "Integrated Speaking - Campus",
+  "type": "Integrated Campus",
   "difficulty": "${difficulty}",
-  "reading": "[Create an original campus announcement about a policy change, new service, facility update, or campus issue. Make it 80-100 words with specific details.]",
-  "audio": "🎧 Student conversation about the announcement",
-  "transcript": "[Create original dialogue where a student expresses clear opinion about the announcement with 2-3 specific reasons. Include realistic student concerns or benefits.]",
-  "question": "The student expresses his/her opinion about [announcement topic]. State the student's opinion and explain the reasons he/she gives for holding that opinion.",
+  "reading": "[Create an original campus announcement/notice about: policy changes, new services, facility updates, schedule changes, etc. 80-120 words with specific details like dates, locations, requirements.]",
+  "audio": "Now you will hear two students discussing the announcement.",
+  "transcript": "[Create realistic student dialogue where one student expresses clear opinion (agrees/disagrees) about the announcement with 2-3 specific reasons. Include natural student speech patterns and realistic concerns/benefits.]",
+  "question": "The [man/woman] expresses [his/her] opinion about the [announcement topic]. State [his/her] opinion and explain the reasons [he/she] gives for holding that opinion.",
   "timeLimit": "30 seconds preparation, 60 seconds response"
 }`,
 
-        "Integrated Academic": `Create a TOEFL Speaking Integrated Academic task with original content. Return only this JSON:
+        "Integrated Academic": `Create a TOEFL Speaking Integrated Academic task using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "speaking",
-  "type": "Integrated Speaking - Academic",
+  "type": "Integrated Academic",
   "difficulty": "${difficulty}",
-  "reading": "[Create an original academic definition of a concept from psychology, business, biology, or environmental science. Make it 80-100 words with clear definition.]",
-  "audio": "🎧 Professor's lecture with examples",
-  "transcript": "[Create original lecture where professor explains the concept with 1-2 specific, concrete examples that clearly illustrate the definition.]",
-  "question": "Using the example(s) from the lecture, explain how [concept from reading] works.",
+  "reading": "[Create an original academic definition/concept from psychology, business, biology, or environmental science. 80-120 words with clear definition and key characteristics.]",
+  "audio": "Now you will hear part of a lecture on this topic.",
+  "transcript": "[Create original lecture where professor explains the concept using 1-2 specific, detailed examples that clearly demonstrate the definition in action.]",
+  "question": "Using the example from the lecture, explain what [concept from reading] is and how it affects [relevant aspect].",
   "timeLimit": "30 seconds preparation, 60 seconds response"
 }`,
+
+        "Summary": `Create a TOEFL Speaking Summary task using EXACT official TOEFL formats. Return only this JSON:
+{
+  "section": "speaking",
+  "type": "Summary",
+  "difficulty": "${difficulty}",
+  "audio": "Now you will listen to a lecture. You will then be asked to summarize the lecture.",
+  "transcript": "[Create original academic lecture about a specific topic from biology, psychology, history, environmental science, or business. 200-250 words with clear main points, supporting details, and examples. Include 2-3 key concepts that can be summarized.]",
+  "question": "Using points and examples from the talk, explain [main topic/concept from the lecture].",
+  "timeLimit": "20 seconds preparation, 60 seconds response"
+}`
       },
 
       writing: {
-        Integrated: `Create a TOEFL Writing Integrated task with original content. Return only this JSON:
+        Integrated: `Create a TOEFL Writing Integrated task using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "writing",
-  "type": "Integrated Writing Task",
+  "type": "Integrated",
   "difficulty": "${difficulty}",
-  "reading": "[Create an original 200-250 word passage about an academic topic with 3 clear main points supporting one position. Topics could include: environmental policies, educational methods, technology impacts, workplace practices, etc.]",
-  "audio": "🎧 Professor's lecture that challenges the reading",
-  "transcript": "[Create original lecture where professor systematically challenges each of the 3 main points from the reading with counterarguments and evidence. Make the opposition clear and specific.]",
-  "question": "Summarize the points made in the lecture, being sure to explain how they challenge the specific points made in the reading passage.",
-  "timeLimit": "20 minutes",
+  "reading": "[Create an original 250-300 word passage presenting 3 clear points about a topic like: biofuels, online education, sustainable agriculture, workplace policies, urban planning, etc. Each paragraph should present one main point with supporting details and evidence.]",
+  "audio": "Now you will hear a lecture about the same topic.",
+  "transcript": "[Create original lecture where professor systematically addresses each of the 3 points from reading - either challenging them with counterarguments, providing additional evidence, or offering alternative perspectives. Make the relationship between reading and lecture clear.]",
+  "question": "Summarize the points made in the lecture, being sure to explain how they respond to the specific concerns presented in the reading passage.",
+  "timeLimit": "3 minutes reading + listening + 20 minutes writing",
   "wordLimit": "150-225 words"
 }`,
 
-        "Independent Opinion Essay": `Create a TOEFL Writing Independent task with original content. Return only this JSON:
+        "Academic Discussion": `Create a TOEFL Writing Academic Discussion task using EXACT official TOEFL formats. Return only this JSON:
 {
   "section": "writing",
-  "type": "Independent Writing Task", 
+  "type": "Academic Discussion", 
   "difficulty": "${difficulty}",
-  "prompt": "[Create an original opinion prompt with a controversial statement about education, technology, society, work, or personal development. Format: 'Do you agree or disagree with the following statement? [Statement]. Use specific reasons and examples to support your answer.']",
-  "timeLimit": "30 minutes",
-  "wordLimit": "300+ words",
-  "tips": "Take a clear position, organize with introduction/body/conclusion, use specific examples"
-}`,
-      },
+  "professorQuestion": "[Create professor's discussion question about topics like: professional development, technology in education, work-life balance, environmental responsibility, social media impact, teamwork vs individual work, etc. Should be 2-3 sentences introducing the topic and asking for opinions.]",
+  "studentResponses": [
+    {
+      "name": "[Student name like Claire, Alex, Sarah, etc.]",
+      "response": "[First student's opinion with 2-3 sentences presenting one clear perspective with reasoning]"
+    },
+    {
+      "name": "[Different student name like Paul, Marcus, Lisa, etc.]", 
+      "response": "[Second student's opinion with 2-3 sentences presenting opposing or different perspective with reasoning]"
+    }
+  ],
+  "question": "Your professor is teaching a class on [relevant subject]. Write a post responding to the professor's question. In your response, you should do the following: • Express and support your opinion. • Make a contribution to the discussion in your own words. An effective response will contain at least 100 words.",
+  "timeLimit": "10 minutes",
+  "wordLimit": "At least 100 words"
+}`
+      }
     };
 
     const prompt = prompts[section][selectedType];
@@ -259,6 +318,26 @@ export async function POST(request) {
     cleanedText = cleanedText.substring(jsonStart, jsonEnd);
 
     const questionData = JSON.parse(cleanedText);
+    
+    // Add authentic TOEFL formatting
+    if (section === 'reading' && questionData.options) {
+      // Ensure proper TOEFL option formatting
+      questionData.options = questionData.options.map((option, index) => {
+        const letter = String.fromCharCode(65 + index); // A, B, C, D
+        const cleanOption = option.replace(/^[A-D]\s*\)?\s*/, ''); // Remove existing letters
+        return `${letter} ${cleanOption}`;
+      });
+    }
+
+    if (section === 'listening' && questionData.options) {
+      // Ensure proper TOEFL option formatting
+      questionData.options = questionData.options.map((option, index) => {
+        const letter = String.fromCharCode(65 + index); // A, B, C, D
+        const cleanOption = option.replace(/^[A-D]\s*\)?\s*/, ''); // Remove existing letters
+        return `${letter} ${cleanOption}`;
+      });
+    }
+
     return Response.json(questionData);
   } catch (error) {
     console.error("Error:", error.message);

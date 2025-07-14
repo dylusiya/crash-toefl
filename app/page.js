@@ -11,20 +11,17 @@ const useTextToSpeech = () => {
   const [currentUtterance, setCurrentUtterance] = useState(null);
 
   useEffect(() => {
-    // Check if speech synthesis is supported
     setIsSupported('speechSynthesis' in window);
     
     if ('speechSynthesis' in window) {
       const loadVoices = () => {
         const availableVoices = window.speechSynthesis.getVoices();
-        // Filter to only English voices
         const englishVoices = availableVoices.filter(voice => 
           voice.lang.startsWith('en')
         );
         setVoices(englishVoices);
         
         if (englishVoices.length > 0) {
-          // Try to find a good English voice, prefer female voices
           const englishVoice = englishVoices.find(voice => 
             voice.name.toLowerCase().includes('female')
           ) || englishVoices.find(voice => 
@@ -39,17 +36,14 @@ const useTextToSpeech = () => {
 
       loadVoices();
       window.speechSynthesis.onvoiceschanged = loadVoices;
-      
-      // Fallback for mobile
       setTimeout(loadVoices, 1000);
-      setTimeout(loadVoices, 2000); // Additional fallback
+      setTimeout(loadVoices, 2000);
     }
   }, []);
 
   const speak = useCallback((text, options = {}) => {
     if (!isSupported || !text) return;
 
-    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -111,7 +105,6 @@ const VoiceSettings = () => {
       setSelectedVoice(voice);
       console.log('Voice changed to:', voice.name, voice.lang);
       
-      // Test the new voice
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
         const testUtterance = new SpeechSynthesisUtterance("Voice changed successfully");
@@ -191,7 +184,6 @@ const ListeningSimulator = ({ scenario, transcript }) => {
       </h4>
       <p className="text-gray-700 leading-relaxed mb-4">{scenario}</p>
       
-      {/* Audio Controls */}
       <div className="flex items-center space-x-3 mb-4">
         <button
           onClick={handlePlay}
@@ -233,7 +225,6 @@ const ListeningSimulator = ({ scenario, transcript }) => {
         </button>
       </div>
 
-      {/* Transcript */}
       {showTranscript && (
         <div className="mt-3 p-3 bg-white rounded border border-green-200">
           <p className="text-sm text-gray-600 mb-1 font-medium">📝 Transcript:</p>
@@ -291,8 +282,6 @@ const IntegratedListeningSimulator = ({ title, transcript }) => {
       </h4>
       <p className="text-gray-700 leading-relaxed mb-4">{title}</p>
       
-      
-      {/* Audio Controls - Same style as ListeningSimulator */}
       <div className="flex items-center space-x-3 mb-4">
         <button
           onClick={handlePlay}
@@ -334,13 +323,74 @@ const IntegratedListeningSimulator = ({ title, transcript }) => {
         </button>
       </div>
 
-      {/* Transcript */}
       {showTranscript && (
         <div className="mt-3 p-3 bg-white rounded border border-green-200">
           <p className="text-sm text-gray-600 mb-1 font-medium">📝 Transcript:</p>
           <p className="text-gray-700 italic leading-relaxed">{transcript}</p>
         </div>
       )}
+    </div>
+  );
+};
+
+// ===== ISOLATED TEXTAREA COMPONENT =====
+const IsolatedTextArea = ({ questionId, initialValue = '', onSubmit, section }) => {
+  const [value, setValue] = useState(initialValue);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const handleChange = (e) => {
+    setValue(e.target.value);
+  };
+
+  const handleSubmitClick = async () => {
+    if (!value.trim()) {
+      alert('Please write something first!');
+      return;
+    }
+    setIsSubmitting(true);
+    await onSubmit(questionId, value);
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="mb-6">
+      <h5 className="font-semibold text-gray-700 mb-3">Your Response:</h5>
+      <textarea
+        value={value}
+        onChange={handleChange}
+        placeholder={`Write your ${section} response here...`}
+        className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-vertical"
+        rows={section === 'writing' ? 10 : 6}
+        style={{ minHeight: '120px' }}
+        disabled={isSubmitting}
+      />
+      <div className="mt-3 flex justify-between items-center">
+        <span className="text-sm text-gray-500">
+          {value.length} characters
+          {section === 'writing' && (
+            <span className="ml-2 text-blue-600">
+              ({Math.round(value.trim().split(/\s+/).length)} words)
+            </span>
+          )}
+        </span>
+        <button
+          onClick={handleSubmitClick}
+          disabled={isSubmitting || !value.trim()}
+          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader className="w-5 h-5 mr-2 animate-spin" />
+              AI is rating...
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-5 h-5 mr-2" />
+              Get AI Rating
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 };
@@ -433,6 +483,36 @@ const CheatSheet = ({ section }) => {
         "This demonstrates...", "This example shows how...",
         "The professor explains that...", "As described in the lecture..."
       ]
+    },
+    summary: {
+      title: "Summary (Task 4)",
+      time: "Listening + 20 sec prep + 60 sec response",
+      template: `🎯 TEMPLATE:
+
+**Introduction (10 seconds)**
+"The professor discusses [main topic] and explains [key concept/process]."
+
+**Main Point 1 (20 seconds)**
+"First, [first main point from lecture]. The professor explains that [supporting details/example]."
+
+**Main Point 2 (20 seconds)**
+"Additionally, [second main point]. According to the lecture, [supporting details/example]."
+
+**Conclusion (10 seconds)**
+"In summary, [restate the main concept and its significance]."`,
+      tips: [
+        "🎧 Listen for the main topic and 2-3 key points",
+        "📝 Take organized notes with clear structure",
+        "🔄 Use transitional phrases to connect ideas",
+        "⏰ Balance time between all main points equally",
+        "🎯 Focus on the most important information only"
+      ],
+      phrases: [
+        "The professor discusses...", "The lecture is about...", "According to the professor...",
+        "First...", "Additionally...", "Another point is...", "Furthermore...",
+        "The professor explains that...", "As mentioned in the lecture...",
+        "In summary...", "To conclude...", "Overall..."
+      ]
     }
   };
 
@@ -471,40 +551,34 @@ In summary, the lecturer systematically refutes the main points presented in the
         "While the reading claims...", "The professor refutes this by..."
       ]
     },
-    independent: {
-      title: "Independent Writing (Task 2)",
-      time: "30 minutes",
-      wordCount: "300+ words (aim for 350-400)",
-      template: `🎯 TEMPLATE (5 paragraphs):
+    academicDiscussion: {
+      title: "Academic Discussion (Task 2)",
+      time: "10 minutes",
+      wordCount: "At least 100 words",
+      template: `🎯 TEMPLATE (1-2 paragraphs):
 
-**Introduction Paragraph (3-4 sentences)**
-[Hook sentence about the topic]. This raises the question of whether [restate the question]. While some people believe [opposing view], I strongly believe that [your thesis] for several compelling reasons.
+**Opening Statement (1-2 sentences)**
+I [agree/disagree/partially agree] with [Student Name]'s perspective about [topic]. [Brief statement of your position].
 
-**Body Paragraph 1 (4-5 sentences)**
-First and foremost, [first main reason]. For example, [specific personal example or scenario]. This demonstrates that [explain how example supports your point]. Therefore, [conclude how this supports your thesis].
+**Main Argument (3-4 sentences)**
+[Your main reason with explanation]. For example, [specific personal example or scenario]. This demonstrates that [how your example supports your point]. [Additional supporting sentence if needed].
 
-**Body Paragraph 2 (4-5 sentences)**
-Additionally, [second main reason]. In my personal experience, [detailed personal example]. This situation illustrates [explanation of how example relates to your point]. As a result, [connection back to thesis].
-
-**Body Paragraph 3 (4-5 sentences)**
-Furthermore, [third main reason or address counter-argument]. Some might argue that [opposing viewpoint], but [your refutation]. For instance, [example supporting your refutation]. This clearly shows that [reinforce your position].
-
-**Conclusion Paragraph (3-4 sentences)**
-In conclusion, [restate thesis in different words]. The evidence I have provided demonstrates that [summarize main points]. For these reasons, I firmly believe that [final restatement of position].`,
+**Conclusion/Extension (1-2 sentences)**
+Therefore, [restate your position briefly]. [Optional: acknowledge other perspectives or add final thought].`,
       tips: [
-        "🎯 Choose your position within 2 minutes and stick to it",
-        "📝 Spend 5 minutes planning your examples before writing",
-        "💡 Use personal examples - they're easier to develop",
-        "⏰ Leave 3-5 minutes at the end for proofreading",
-        "📏 Aim for 350-400 words for a competitive score",
-        "🔄 Vary your sentence structures and vocabulary"
+        "🎯 Read all posts carefully before writing your response",
+        "📝 Take a clear position - agree, disagree, or offer middle ground",
+        "💡 Use personal examples - they're more convincing and easier to develop",
+        "🔗 Reference other students' points to show you're contributing to discussion",
+        "⏰ Write at least 100 words but quality over quantity",
+        "🔄 Use natural discussion language: 'I think...', 'In my experience...', 'However...'"
       ],
       phrases: [
-        "In today's society...", "It is widely debated whether...", "There are several reasons why...",
-        "First and foremost...", "Additionally...", "Furthermore...", "Moreover...",
-        "For example...", "In my experience...", "To illustrate...", "A case in point...",
-        "Therefore...", "As a result...", "Consequently...", "This demonstrates that...",
-        "In conclusion...", "To sum up...", "All things considered..."
+        "I completely agree with...", "I have to disagree with...", "I see both sides, but...",
+        "Building on what [Name] said...", "Unlike [Name], I believe...", "This reminds me of...",
+        "In my experience...", "For instance...", "This is exactly why...",
+        "What's more...", "However...", "On the other hand...",
+        "Therefore...", "This shows that...", "That's why I think..."
       ]
     }
   };
@@ -550,7 +624,6 @@ In conclusion, [restate thesis in different words]. The evidence I have provided
 
   return (
     <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
-      {/* Header */}
       <div className={`${section === 'speaking' ? 'bg-gradient-to-r from-orange-600 to-red-600' : 'bg-gradient-to-r from-pink-600 to-purple-600'} text-white p-4`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -565,7 +638,6 @@ In conclusion, [restate thesis in different words]. The evidence I have provided
         </div>
       </div>
 
-      {/* Template Tabs */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="flex space-x-1 p-2">
           {templateKeys.map((key, index) => (
@@ -585,7 +657,6 @@ In conclusion, [restate thesis in different words]. The evidence I have provided
       </div>
 
       <div className="p-6">
-        {/* Task Info */}
         <div className="grid md:grid-cols-3 gap-4 mb-6">
           <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
             <div className="flex items-center space-x-2 text-blue-700 font-semibold mb-1">
@@ -616,7 +687,6 @@ In conclusion, [restate thesis in different words]. The evidence I have provided
           </div>
         </div>
 
-        {/* Template */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-bold text-gray-800">📋 Template Structure</h4>
@@ -634,7 +704,6 @@ In conclusion, [restate thesis in different words]. The evidence I have provided
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Tips */}
           <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
             <h5 className="font-bold text-yellow-800 mb-3 flex items-center">
               <Star className="w-5 h-5 mr-2" />
@@ -649,7 +718,6 @@ In conclusion, [restate thesis in different words]. The evidence I have provided
             </ul>
           </div>
 
-          {/* Useful Phrases */}
           <div className="bg-green-50 p-4 rounded-lg border border-green-200">
             <h5 className="font-bold text-green-800 mb-3 flex items-center">
               <Brain className="w-5 h-5 mr-2" />
@@ -670,7 +738,6 @@ In conclusion, [restate thesis in different words]. The evidence I have provided
           </div>
         </div>
 
-        {/* Additional Tips Section */}
         <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <h5 className="font-bold text-blue-800 mb-3">
             🎯 {section === 'speaking' ? 'Speaking' : 'Writing'} Success Strategies
@@ -695,66 +762,6 @@ In conclusion, [restate thesis in different words]. The evidence I have provided
             )}
           </div>
         </div>
-      </div>
-    </div>
-  );
-};
-const IsolatedTextArea = ({ questionId, initialValue = '', onSubmit, section }) => {
-  const [value, setValue] = useState(initialValue);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const handleChange = (e) => {
-    setValue(e.target.value);
-  };
-
-  const handleSubmitClick = async () => {
-    if (!value.trim()) {
-      alert('Please write something first!');
-      return;
-    }
-    setIsSubmitting(true);
-    await onSubmit(questionId, value);
-    setIsSubmitting(false);
-  };
-
-  return (
-    <div className="mb-6">
-      <h5 className="font-semibold text-gray-700 mb-3">Your Response:</h5>
-      <textarea
-        value={value}
-        onChange={handleChange}
-        placeholder={`Write your ${section} response here...`}
-        className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-vertical"
-        rows={section === 'writing' ? 10 : 6}
-        style={{ minHeight: '120px' }}
-        disabled={isSubmitting}
-      />
-      <div className="mt-3 flex justify-between items-center">
-        <span className="text-sm text-gray-500">
-          {value.length} characters
-          {section === 'writing' && (
-            <span className="ml-2 text-blue-600">
-              ({Math.round(value.trim().split(/\s+/).length)} words)
-            </span>
-          )}
-        </span>
-        <button
-          onClick={handleSubmitClick}
-          disabled={isSubmitting || !value.trim()}
-          className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader className="w-5 h-5 mr-2 animate-spin" />
-              AI is rating...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-5 h-5 mr-2" />
-              Get AI Rating
-            </>
-          )}
-        </button>
       </div>
     </div>
   );
@@ -806,7 +813,6 @@ const QuestionTabs = ({ questions, activeQuestionIndex, onTabChange, onTabClose,
         })}
       </div>
       
-      {/* Navigation arrows for better UX when many tabs */}
       {sectionQuestions.length > 1 && (
         <div className="flex justify-center space-x-4 py-2 bg-gray-50 border-t border-gray-200">
           <button
@@ -883,11 +889,11 @@ export default function TOEFLApp() {
   const questionTypes = {
     reading: ['Factual', 'Inference', 'Vocabulary', 'Summary', 'Purpose'],
     listening: ['Gist', 'Detail', 'Function', 'Attitude', 'Inference', 'Connecting Info'],
-    speaking: ['Independent', 'Integrated Campus', 'Integrated Academic'],
-    writing: ['Integrated', 'Independent Opinion Essay']
+    speaking: ['Independent', 'Integrated Campus', 'Integrated Academic', 'Summary'],
+    writing: ['Integrated', 'Academic Discussion']
   };
 
-  // ===== MEMOIZED HANDLERS =====
+  // ===== HANDLERS =====
   const handleAnswerChange = useCallback((questionId, answer) => {
     setUserAnswers(prev => ({
       ...prev,
@@ -939,10 +945,8 @@ export default function TOEFLApp() {
     const sectionQuestions = questions.filter(q => q.section === activeSection);
     const questionIndex = sectionQuestions.findIndex(q => q.id === questionId);
     
-    // Remove the question
     setQuestions(prev => prev.filter(q => q.id !== questionId));
     
-    // Clean up related state
     setUserAnswers(prev => {
       const newAnswers = { ...prev };
       delete newAnswers[questionId];
@@ -961,20 +965,16 @@ export default function TOEFLApp() {
       return newRating;
     });
     
-    // Adjust active question index
     const remainingQuestions = sectionQuestions.length - 1;
     if (remainingQuestions === 0) {
       setActiveQuestionIndex(0);
     } else if (questionIndex === activeQuestionIndex) {
-      // If closing the active tab, move to the previous one or stay at 0
       setActiveQuestionIndex(Math.max(0, activeQuestionIndex - 1));
     } else if (questionIndex < activeQuestionIndex) {
-      // If closing a tab before the active one, shift index back
       setActiveQuestionIndex(activeQuestionIndex - 1);
     }
   }, [questions, activeSection, activeQuestionIndex]);
 
-  // Reset active question index when changing sections
   useEffect(() => {
     setActiveQuestionIndex(0);
   }, [activeSection]);
@@ -983,6 +983,8 @@ export default function TOEFLApp() {
   const generateQuestion = async () => {
     setIsGenerating(true);
     try {
+      console.log('Generating question for section:', activeSection, 'type:', selectedQuestionType);
+      
       const response = await fetch('/api/generate-question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -993,13 +995,26 @@ export default function TOEFLApp() {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to generate question');
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
 
       const newQuestion = await response.json();
       const questionWithId = { ...newQuestion, id: Date.now() };
+      
+      console.log('Generated question type:', questionWithId.type);
+      console.log('Generated question section:', questionWithId.section);
+      
+      if (questionWithId.type === 'Academic Discussion') {
+        console.log('Academic Discussion question details:');
+        console.log('- Has professorQuestion:', !!questionWithId.professorQuestion);
+        console.log('- Has studentResponses:', !!questionWithId.studentResponses);
+        console.log('- Professor question preview:', questionWithId.professorQuestion?.substring(0, 50) + '...');
+        console.log('- Number of student responses:', questionWithId.studentResponses?.length);
+      }
+      
       setQuestions(prev => [...prev, questionWithId]);
       
-      // Set the new question as active
       const sectionQuestions = questions.filter(q => q.section === activeSection);
       setActiveQuestionIndex(sectionQuestions.length);
     } catch (error) {
@@ -1025,7 +1040,6 @@ export default function TOEFLApp() {
     return 'text-red-600';
   };
 
-  // Check if question is integrated speaking/writing
   const isIntegratedTask = (question) => {
     return (question.section === 'speaking' || question.section === 'writing') && 
            question.type && question.type.toLowerCase().includes('integrated');
@@ -1040,7 +1054,6 @@ export default function TOEFLApp() {
 
     return (
       <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
-        {/* Header */}
         <div className={`${sections[activeSection].color} text-white p-4`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -1096,7 +1109,6 @@ export default function TOEFLApp() {
               </h4>
               <p className="text-gray-700 leading-relaxed mb-3">{question.scenario}</p>
               
-              {/* Transcript */}
               <div className="mt-3 p-3 bg-white rounded border border-green-200">
                 <p className="text-sm text-gray-600 mb-1 font-medium">📝 Transcript:</p>
                 <p className="text-gray-700 italic leading-relaxed">{question.transcript}</p>
@@ -1112,8 +1124,16 @@ export default function TOEFLApp() {
             />
           )}
 
+          {/* Audio for Summary speaking task with TTS */}
+          {question.audio && question.section === 'speaking' && question.type === 'Summary' && (
+            <IntegratedListeningSimulator 
+              title={question.audio}
+              transcript={question.transcript}
+            />
+          )}
+
           {/* Audio without TTS for non-integrated tasks */}
-          {question.audio && !isIntegratedTask(question) && (
+          {question.audio && !isIntegratedTask(question) && question.type !== 'Summary' && (
             <div className="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
               <h4 className="font-bold text-green-800 mb-3">{question.audio}</h4>
               {question.transcript && (
@@ -1125,8 +1145,8 @@ export default function TOEFLApp() {
             </div>
           )}
 
-          {/* Writing Prompt */}
-          {question.prompt && (
+          {/* Writing Prompt - Only for non-Academic Discussion */}
+          {question.prompt && question.type !== 'Academic Discussion' && (
             <div className="mb-6 p-4 bg-purple-50 rounded-lg border-l-4 border-purple-400">
               <h4 className="font-bold text-purple-800 mb-3">📝 Writing Prompt:</h4>
               <p className="text-gray-700 leading-relaxed">{question.prompt}</p>
@@ -1138,19 +1158,62 @@ export default function TOEFLApp() {
             </div>
           )}
 
-          {/* Question */}
-          <div className="mb-6 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
-            <h4 className="font-bold text-yellow-800 mb-2 flex items-center">
-              <Target className="w-5 h-5 mr-2" />
-              Question:
-            </h4>
-            <p className="text-gray-800 font-medium">{question.question}</p>
-            {question.tips && (
-              <div className="mt-2 text-sm text-yellow-700">
-                💡 Tips: {question.tips}
+          {/* Academic Discussion Format (Writing) */}
+          {question.professorQuestion && (
+            <div className="mb-6 space-y-4">
+              <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                <h4 className="font-bold text-blue-800 mb-3 flex items-center">
+                  <PenTool className="w-5 h-5 mr-2" />
+                  Professor's Question
+                </h4>
+                <p className="text-gray-700 leading-relaxed">{question.professorQuestion}</p>
               </div>
-            )}
-          </div>
+
+              {question.studentResponses && question.studentResponses.map((student, index) => (
+                <div key={index} className="p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+                  <h5 className="font-bold text-green-800 mb-2">{student.name}:</h5>
+                  <p className="text-gray-700 leading-relaxed">{student.response}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Question - For non-Academic Discussion */}
+          {question.question && question.type !== 'Academic Discussion' && (
+            <div className="mb-6 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+              <h4 className="font-bold text-yellow-800 mb-2 flex items-center">
+                <Target className="w-5 h-5 mr-2" />
+                Question:
+              </h4>
+              <p className="text-gray-800 font-medium">{question.question}</p>
+              {question.tips && (
+                <div className="mt-2 text-sm text-yellow-700">
+                  💡 Tips: {question.tips}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Academic Discussion Question - Special format */}
+          {question.type === 'Academic Discussion' && question.question && (
+            <div className="mb-6 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+              <h4 className="font-bold text-yellow-800 mb-2 flex items-center">
+                <Target className="w-5 h-5 mr-2" />
+                Your Task:
+              </h4>
+              <p className="text-gray-800 font-medium">{question.question}</p>
+              {question.wordCount && (
+                <div className="mt-2 text-sm text-yellow-700">
+                  📝 Word Count: {question.wordCount}
+                </div>
+              )}
+              {question.timeLimit && (
+                <div className="mt-1 text-sm text-yellow-700">
+                  ⏰ Time Limit: {question.timeLimit}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Multiple Choice Options (Reading/Listening) */}
           {question.options && !isSpeakingOrWriting && (
@@ -1184,7 +1247,6 @@ export default function TOEFLApp() {
                 })}
               </div>
               
-              {/* Submit Button for Multiple Choice */}
               {userAnswer && !review && (
                 <button
                   onClick={() => handleSubmitAnswer(question.id)}
@@ -1219,13 +1281,11 @@ export default function TOEFLApp() {
           {/* Show User Answer for Speaking/Writing after review */}
           {(isSpeakingOrWriting || !question.options) && review && userAnswer && (
             <div className="mb-6 space-y-4">
-              {/* Original User Response */}
               <div className="p-4 bg-gray-50 rounded-lg border border-gray-300">
                 <h5 className="font-semibold text-gray-700 mb-2">Your Response:</h5>
                 <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{userAnswer}</p>
               </div>
 
-              {/* AI Improved Version */}
               {review.improvedResponse && (
                 <div className="p-4 bg-green-50 rounded-lg border border-green-300">
                   <h5 className="font-semibold text-green-700 mb-2 flex items-center">
@@ -1467,8 +1527,8 @@ export default function TOEFLApp() {
               <div className="text-sm text-gray-400 space-y-1">
                 <p>📚 Reading: Factual, Inference, Vocabulary, Summary, Purpose</p>
                 <p>🎧 Listening: Gist, Detail, Function, Attitude, Inference, Connecting Info</p>
-                <p>🎤 Speaking: Independent, Integrated Campus, Integrated Academic</p>
-                <p>✍️ Writing: Integrated, Independent Opinion Essay</p>
+                <p>🎤 Speaking: Independent, Integrated Campus, Integrated Academic, Summary</p>
+                <p>✍️ Writing: Integrated, Academic Discussion</p>
               </div>
               <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 max-w-md mx-auto">
                 <h4 className="font-semibold text-blue-800 mb-2 flex items-center justify-center">
