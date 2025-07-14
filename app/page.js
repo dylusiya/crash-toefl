@@ -79,14 +79,6 @@ const useTextToSpeech = () => {
     setCurrentUtterance(null);
   }, []);
 
-  const pause = useCallback(() => {
-    window.speechSynthesis.pause();
-  }, []);
-
-  const resume = useCallback(() => {
-    window.speechSynthesis.resume();
-  }, []);
-
   return {
     isSupported,
     voices,
@@ -94,84 +86,42 @@ const useTextToSpeech = () => {
     setSelectedVoice,
     isPlaying,
     speak,
-    stop,
-    pause,
-    resume
+    stop
   };
 };
 
-// ===== SPEECH CONTROLS COMPONENT =====
-const SpeechControls = ({ text, title, isCompact = false, className = "" }) => {
-  const { isSupported, speak, stop, isPlaying } = useTextToSpeech();
+// ===== VOICE SETTINGS COMPONENT =====
+const VoiceSettings = () => {
+  const { isSupported, voices, selectedVoice, setSelectedVoice } = useTextToSpeech();
 
-  if (!isSupported || !text) return null;
+  if (!isSupported || voices.length === 0) return null;
 
-  const handleSpeak = () => {
-    if (isPlaying) {
-      stop();
-    } else {
-      speak(text);
-    }
+  const handleVoiceChange = (e) => {
+    const voice = voices.find(v => v.name === e.target.value);
+    setSelectedVoice(voice);
   };
 
-  if (isCompact) {
-    return (
-      <button
-        onClick={handleSpeak}
-        className={`flex items-center space-x-1 px-2 py-1 rounded text-sm transition-colors ${
-          isPlaying 
-            ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-        } ${className}`}
-        title={isPlaying ? 'Stop reading' : `Read ${title || 'text'} aloud`}
-      >
-        {isPlaying ? (
-          <>
-            <VolumeX className="w-4 h-4" />
-            <span>Stop</span>
-          </>
-        ) : (
-          <>
-            <Volume2 className="w-4 h-4" />
-            <span>Read</span>
-          </>
-        )}
-      </button>
-    );
-  }
-
   return (
-    <div className={`flex items-center space-x-2 ${className}`}>
-      <button
-        onClick={handleSpeak}
-        className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-          isPlaying 
-            ? 'bg-red-100 text-red-700 hover:bg-red-200' 
-            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-        }`}
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-white mb-2">
+        🎤 Voice Settings ({voices.length} voices available)
+      </label>
+      <select
+        value={selectedVoice?.name || ''}
+        onChange={handleVoiceChange}
+        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-800"
       >
-        {isPlaying ? (
-          <>
-            <VolumeX className="w-4 h-4" />
-            <span>Stop Reading</span>
-          </>
-        ) : (
-          <>
-            <Volume2 className="w-4 h-4" />
-            <span>Read Aloud</span>
-          </>
-        )}
-      </button>
-      {title && (
-        <span className="text-sm text-gray-600">
-          {title}
-        </span>
-      )}
+        {voices.map((voice) => (
+          <option key={voice.name} value={voice.name} className="text-gray-800">
+            {voice.name} ({voice.lang}) {voice.default ? '(Default)' : ''}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };
 
-// ===== LISTENING SIMULATOR COMPONENT =====
+// ===== LISTENING SIMULATOR FOR LISTENING SECTION =====
 const ListeningSimulator = ({ scenario, transcript }) => {
   const { isSupported, speak, stop, isPlaying } = useTextToSpeech();
   const [showTranscript, setShowTranscript] = useState(false);
@@ -182,7 +132,7 @@ const ListeningSimulator = ({ scenario, transcript }) => {
       stop();
     } else {
       setHasStarted(true);
-      speak(transcript, { rate: 0.9 }); // Slightly slower for listening practice
+      speak(transcript, { rate: 0.9 });
     }
   };
 
@@ -263,14 +213,7 @@ const ListeningSimulator = ({ scenario, transcript }) => {
       {/* Transcript */}
       {showTranscript && (
         <div className="mt-3 p-3 bg-white rounded border border-green-200">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-gray-600 font-medium">📝 Transcript:</p>
-            <SpeechControls 
-              text={transcript} 
-              title="transcript"
-              isCompact={true}
-            />
-          </div>
+          <p className="text-sm text-gray-600 mb-1 font-medium">📝 Transcript:</p>
           <p className="text-gray-700 italic leading-relaxed">{transcript}</p>
         </div>
       )}
@@ -278,31 +221,90 @@ const ListeningSimulator = ({ scenario, transcript }) => {
   );
 };
 
-// ===== VOICE SETTINGS COMPONENT =====
-const VoiceSettings = () => {
-  const { isSupported, voices, selectedVoice, setSelectedVoice } = useTextToSpeech();
+// ===== INTEGRATED LISTENING SIMULATOR FOR SPEAKING/WRITING =====
+const IntegratedListeningSimulator = ({ title, transcript }) => {
+  const { isSupported, speak, stop, isPlaying } = useTextToSpeech();
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
-  if (!isSupported || voices.length === 0) return null;
+  const handlePlay = () => {
+    if (isPlaying) {
+      stop();
+    } else {
+      setHasStarted(true);
+      speak(transcript, { rate: 0.9 });
+    }
+  };
+
+  const handleReplay = () => {
+    stop();
+    setTimeout(() => {
+      speak(transcript, { rate: 0.9 });
+    }, 100);
+  };
+
+  if (!isSupported) {
+    return (
+      <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-300">
+        <p className="text-sm text-blue-600 mb-1 font-medium">📝 {title}:</p>
+        <p className="text-blue-700 italic leading-relaxed">{transcript}</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        🎤 Voice Settings ({voices.length} voices available)
-      </label>
-      <select
-        value={selectedVoice?.name || ''}
-        onChange={(e) => {
-          const voice = voices.find(v => v.name === e.target.value);
-          setSelectedVoice(voice);
-        }}
-        className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      >
-        {voices.map((voice) => (
-          <option key={voice.name} value={voice.name}>
-            {voice.name} ({voice.lang}) {voice.default ? '(Default)' : ''}
-          </option>
-        ))}
-      </select>
+    <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-300">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-blue-600 font-medium">🎧 {title}</p>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handlePlay}
+            className={`flex items-center space-x-1 px-3 py-1 rounded text-sm font-medium transition-colors ${
+              isPlaying 
+                ? 'bg-red-600 text-white hover:bg-red-700' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isPlaying ? (
+              <>
+                <Pause className="w-3 h-3" />
+                <span>Stop</span>
+              </>
+            ) : (
+              <>
+                <Play className="w-3 h-3" />
+                <span>Play</span>
+              </>
+            )}
+          </button>
+          
+          {hasStarted && (
+            <button
+              onClick={handleReplay}
+              className="flex items-center space-x-1 px-3 py-1 rounded text-sm font-medium bg-gray-600 text-white hover:bg-gray-700 transition-colors"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Replay</span>
+            </button>
+          )}
+          
+          <button
+            onClick={() => setShowTranscript(!showTranscript)}
+            className="flex items-center space-x-1 px-3 py-1 rounded text-sm font-medium bg-yellow-600 text-white hover:bg-yellow-700 transition-colors"
+          >
+            <BookOpen className="w-3 h-3" />
+            <span>{showTranscript ? 'Hide' : 'Show'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Transcript */}
+      {showTranscript && (
+        <div className="mt-3 p-3 bg-white rounded border border-blue-200">
+          <p className="text-sm text-gray-600 mb-1 font-medium">📝 Transcript:</p>
+          <p className="text-gray-700 italic leading-relaxed">{transcript}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -339,23 +341,14 @@ const IsolatedTextArea = ({ questionId, initialValue = '', onSubmit, section }) 
         disabled={isSubmitting}
       />
       <div className="mt-3 flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <span className="text-sm text-gray-500">
-            {value.length} characters
-            {section === 'writing' && (
-              <span className="ml-2 text-blue-600">
-                ({Math.round(value.trim().split(/\s+/).length)} words)
-              </span>
-            )}
-          </span>
-          {value.trim() && (
-            <SpeechControls 
-              text={value} 
-              title="your response"
-              isCompact={true}
-            />
+        <span className="text-sm text-gray-500">
+          {value.length} characters
+          {section === 'writing' && (
+            <span className="ml-2 text-blue-600">
+              ({Math.round(value.trim().split(/\s+/).length)} words)
+            </span>
           )}
-        </div>
+        </span>
         <button
           onClick={handleSubmitClick}
           disabled={isSubmitting || !value.trim()}
@@ -378,6 +371,7 @@ const IsolatedTextArea = ({ questionId, initialValue = '', onSubmit, section }) 
   );
 };
 
+// ===== MAIN TOEFL APP COMPONENT =====
 export default function TOEFLApp() {
   // ===== STATE MANAGEMENT =====
   const [activeSection, setActiveSection] = useState('reading');
@@ -513,6 +507,12 @@ export default function TOEFLApp() {
     return 'text-red-600';
   };
 
+  // Check if question is integrated speaking/writing
+  const isIntegratedTask = (question) => {
+    return (question.section === 'speaking' || question.section === 'writing') && 
+           question.type && question.type.toLowerCase().includes('integrated');
+  };
+
   // ===== QUESTION CARD COMPONENT =====
   const QuestionCard = React.memo(({ question }) => {
     const userAnswer = userAnswers[question.id] || '';
@@ -561,7 +561,7 @@ export default function TOEFLApp() {
             </div>
           )}
 
-          {/* Listening Scenario with TTS - Only for listening section */}
+          {/* Listening Scenario - Only for listening section */}
           {question.scenario && question.transcript && question.section === 'listening' && (
             <ListeningSimulator 
               scenario={question.scenario}
@@ -587,15 +587,15 @@ export default function TOEFLApp() {
           )}
 
           {/* Audio for integrated speaking/writing with TTS */}
-          {question.audio && (question.section === 'speaking' || question.section === 'writing') && question.type && question.type.toLowerCase().includes('integrated') && (
+          {question.audio && isIntegratedTask(question) && (
             <div className="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
               <h4 className="font-bold text-green-800 mb-3 flex items-center">
                 <Headphones className="w-5 h-5 mr-2" />
                 🎧 {question.audio}
               </h4>
               {question.transcript && (
-                <ListeningSimulator 
-                  scenario="Listen to the audio content:"
+                <IntegratedListeningSimulator 
+                  title="Audio Content"
                   transcript={question.transcript}
                 />
               )}
@@ -603,7 +603,7 @@ export default function TOEFLApp() {
           )}
 
           {/* Audio without TTS for non-integrated tasks */}
-          {question.audio && !(question.section === 'speaking' || question.section === 'writing') && (
+          {question.audio && !isIntegratedTask(question) && (
             <div className="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
               <h4 className="font-bold text-green-800 mb-3">{question.audio}</h4>
               {question.transcript && (
