@@ -17,15 +17,21 @@ const useTextToSpeech = () => {
     if ('speechSynthesis' in window) {
       const loadVoices = () => {
         const availableVoices = window.speechSynthesis.getVoices();
-        setVoices(availableVoices);
+        // Filter to only English voices
+        const englishVoices = availableVoices.filter(voice => 
+          voice.lang.startsWith('en')
+        );
+        setVoices(englishVoices);
         
-        if (availableVoices.length > 0) {
-          // Try to find a good English voice
-          const englishVoice = availableVoices.find(voice => 
-            voice.lang.startsWith('en') && voice.name.includes('Female')
-          ) || availableVoices.find(voice => 
-            voice.lang.startsWith('en')
-          ) || availableVoices[0];
+        if (englishVoices.length > 0) {
+          // Try to find a good English voice, prefer female voices
+          const englishVoice = englishVoices.find(voice => 
+            voice.name.toLowerCase().includes('female')
+          ) || englishVoices.find(voice => 
+            voice.name.toLowerCase().includes('karen') || 
+            voice.name.toLowerCase().includes('samantha') ||
+            voice.name.toLowerCase().includes('alex')
+          ) || englishVoices[0];
           
           setSelectedVoice(englishVoice);
         }
@@ -36,6 +42,7 @@ const useTextToSpeech = () => {
       
       // Fallback for mobile
       setTimeout(loadVoices, 1000);
+      setTimeout(loadVoices, 2000); // Additional fallback
     }
   }, []);
 
@@ -65,7 +72,8 @@ const useTextToSpeech = () => {
       setCurrentUtterance(null);
     };
     
-    utterance.onerror = () => {
+    utterance.onerror = (event) => {
+      console.error('Speech synthesis error:', event);
       setIsPlaying(false);
       setCurrentUtterance(null);
     };
@@ -97,23 +105,38 @@ const VoiceSettings = () => {
   if (!isSupported || voices.length === 0) return null;
 
   const handleVoiceChange = (e) => {
-    const voice = voices.find(v => v.name === e.target.value);
-    setSelectedVoice(voice);
+    const selectedVoiceName = e.target.value;
+    const voice = voices.find(v => v.name === selectedVoiceName);
+    if (voice) {
+      setSelectedVoice(voice);
+      console.log('Voice changed to:', voice.name, voice.lang);
+      
+      // Test the new voice
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const testUtterance = new SpeechSynthesisUtterance("Voice changed successfully");
+        testUtterance.voice = voice;
+        testUtterance.rate = 0.9;
+        window.speechSynthesis.speak(testUtterance);
+      }
+    }
   };
 
   return (
     <div className="mb-4">
       <label className="block text-sm font-medium text-white mb-2">
-        🎤 Voice Settings ({voices.length} voices available)
+        🎤 English Voice Settings ({voices.length} voices available)
       </label>
       <select
         value={selectedVoice?.name || ''}
         onChange={handleVoiceChange}
         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-800"
       >
-        {voices.map((voice) => (
-          <option key={voice.name} value={voice.name} className="text-gray-800">
-            {voice.name} ({voice.lang}) {voice.default ? '(Default)' : ''}
+        {voices.map((voice, index) => (
+          <option key={`${voice.name}-${index}`} value={voice.name} className="text-gray-800">
+            {voice.name} ({voice.lang})
+            {voice.default ? ' (Default)' : ''}
+            {voice.localService ? ' (Local)' : ' (Network)'}
           </option>
         ))}
       </select>
@@ -245,62 +268,71 @@ const IntegratedListeningSimulator = ({ title, transcript }) => {
 
   if (!isSupported) {
     return (
-      <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-300">
-        <p className="text-sm text-blue-600 mb-1 font-medium">📝 {title}:</p>
-        <p className="text-blue-700 italic leading-relaxed">{transcript}</p>
+      <div className="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+        <h4 className="font-bold text-green-800 mb-3 flex items-center">
+          <Headphones className="w-5 h-5 mr-2" />
+          {title}
+        </h4>
+        <div className="mt-3 p-3 bg-white rounded border border-green-200">
+          <p className="text-sm text-gray-600 mb-1 font-medium">📝 Transcript:</p>
+          <p className="text-gray-700 italic leading-relaxed">{transcript}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mt-3 p-4 bg-blue-50 rounded-lg border border-blue-300">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-blue-600 font-medium">🎧 {title}</p>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handlePlay}
-            className={`flex items-center space-x-1 px-3 py-1 rounded text-sm font-medium transition-colors ${
-              isPlaying 
-                ? 'bg-red-600 text-white hover:bg-red-700' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
-          >
-            {isPlaying ? (
-              <>
-                <Pause className="w-3 h-3" />
-                <span>Stop</span>
-              </>
-            ) : (
-              <>
-                <Play className="w-3 h-3" />
-                <span>Play</span>
-              </>
-            )}
-          </button>
-          
-          {hasStarted && (
-            <button
-              onClick={handleReplay}
-              className="flex items-center space-x-1 px-3 py-1 rounded text-sm font-medium bg-gray-600 text-white hover:bg-gray-700 transition-colors"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Replay</span>
-            </button>
+    <div className="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
+      <h4 className="font-bold text-green-800 mb-3 flex items-center">
+        <Headphones className="w-5 h-5 mr-2" />
+        {title}
+      </h4>
+      
+      {/* Audio Controls - Same style as ListeningSimulator */}
+      <div className="flex items-center space-x-3 mb-4">
+        <button
+          onClick={handlePlay}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+            isPlaying 
+              ? 'bg-red-600 text-white hover:bg-red-700' 
+              : 'bg-green-600 text-white hover:bg-green-700'
+          }`}
+        >
+          {isPlaying ? (
+            <>
+              <Pause className="w-4 h-4" />
+              <span>Stop Audio</span>
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4" />
+              <span>Play Audio</span>
+            </>
           )}
-          
+        </button>
+        
+        {hasStarted && (
           <button
-            onClick={() => setShowTranscript(!showTranscript)}
-            className="flex items-center space-x-1 px-3 py-1 rounded text-sm font-medium bg-yellow-600 text-white hover:bg-yellow-700 transition-colors"
+            onClick={handleReplay}
+            className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium bg-gray-600 text-white hover:bg-gray-700 transition-colors"
           >
-            <BookOpen className="w-3 h-3" />
-            <span>{showTranscript ? 'Hide' : 'Show'}</span>
+            <RotateCcw className="w-4 h-4" />
+            <span>Replay</span>
           </button>
-        </div>
+        )}
+        
+        <button
+          onClick={() => setShowTranscript(!showTranscript)}
+          className="flex items-center space-x-2 px-4 py-2 rounded-lg font-medium bg-yellow-600 text-white hover:bg-yellow-700 transition-colors"
+        >
+          <BookOpen className="w-4 h-4" />
+          <span>{showTranscript ? 'Hide' : 'Show'} Transcript</span>
+        </button>
       </div>
 
       {/* Transcript */}
       {showTranscript && (
-        <div className="mt-3 p-3 bg-white rounded border border-blue-200">
+        <div className="mt-3 p-3 bg-white rounded border border-green-200">
           <p className="text-sm text-gray-600 mb-1 font-medium">📝 Transcript:</p>
           <p className="text-gray-700 italic leading-relaxed">{transcript}</p>
         </div>
@@ -588,18 +620,10 @@ export default function TOEFLApp() {
 
           {/* Audio for integrated speaking/writing with TTS */}
           {question.audio && isIntegratedTask(question) && (
-            <div className="mb-6 p-4 bg-green-50 rounded-lg border-l-4 border-green-400">
-              <h4 className="font-bold text-green-800 mb-3 flex items-center">
-                <Headphones className="w-5 h-5 mr-2" />
-                🎧 {question.audio}
-              </h4>
-              {question.transcript && (
-                <IntegratedListeningSimulator 
-                  title="Audio Content"
-                  transcript={question.transcript}
-                />
-              )}
-            </div>
+            <IntegratedListeningSimulator 
+              title={question.audio}
+              transcript={question.transcript}
+            />
           )}
 
           {/* Audio without TTS for non-integrated tasks */}
@@ -708,9 +732,31 @@ export default function TOEFLApp() {
 
           {/* Show User Answer for Speaking/Writing after review */}
           {(isSpeakingOrWriting || !question.options) && review && userAnswer && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-300">
-              <h5 className="font-semibold text-gray-700 mb-2">Your Response:</h5>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{userAnswer}</p>
+            <div className="mb-6 space-y-4">
+              {/* Original User Response */}
+              <div className="p-4 bg-gray-50 rounded-lg border border-gray-300">
+                <h5 className="font-semibold text-gray-700 mb-2">Your Response:</h5>
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{userAnswer}</p>
+              </div>
+
+              {/* AI Improved Version */}
+              {review.improvedResponse && (
+                <div className="p-4 bg-green-50 rounded-lg border border-green-300">
+                  <h5 className="font-semibold text-green-700 mb-2 flex items-center">
+                    <Star className="w-5 h-5 mr-2" />
+                    AI Improved Version:
+                  </h5>
+                  <p className="text-green-800 leading-relaxed whitespace-pre-wrap">{review.improvedResponse}</p>
+                  <div className="mt-3 text-sm text-green-600">
+                    <p><strong>Key Improvements:</strong></p>
+                    <ul className="list-disc list-inside mt-1 space-y-1">
+                      {review.improvementHighlights?.map((highlight, index) => (
+                        <li key={index}>{highlight}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

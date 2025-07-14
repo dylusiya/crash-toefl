@@ -43,9 +43,12 @@ Provide a detailed evaluation in JSON format:
   "detailedFeedback": "detailed explanation of the answer quality"
 }`,
 
-      speaking: `Rate this TOEFL Speaking response:
+      speaking: `Rate this TOEFL Speaking response and provide an improved version:
 
 Question: ${question.question}
+${question.reading ? `Reading: ${question.reading}` : ''}
+${question.audio ? `Audio: ${question.audio}` : ''}
+${question.transcript ? `Transcript: ${question.transcript}` : ''}
 User Response: ${userAnswer}
 
 Evaluate based on TOEFL Speaking criteria and provide in JSON format:
@@ -56,12 +59,17 @@ Evaluate based on TOEFL Speaking criteria and provide in JSON format:
   "content": (0-10 for task completion and ideas),
   "strengths": ["strength1", "strength2", "strength3"],
   "improvements": ["improvement1", "improvement2", "improvement3"],
-  "detailedFeedback": "comprehensive feedback on delivery, language use, and topic development"
+  "detailedFeedback": "comprehensive feedback on delivery, language use, and topic development",
+  "improvedResponse": "An enhanced version of the user's response with better grammar, vocabulary, structure, and content while maintaining the same main ideas",
+  "improvementHighlights": ["specific improvement 1", "specific improvement 2", "specific improvement 3"]
 }`,
 
-      writing: `Rate this TOEFL Writing essay:
+      writing: `Rate this TOEFL Writing essay and provide an improved version:
 
 Prompt: ${question.prompt}
+${question.reading ? `Reading: ${question.reading}` : ''}
+${question.audio ? `Audio: ${question.audio}` : ''}
+${question.transcript ? `Transcript: ${question.transcript}` : ''}
 User Essay: ${userAnswer}
 
 Evaluate based on TOEFL Writing criteria and provide in JSON format:
@@ -72,7 +80,9 @@ Evaluate based on TOEFL Writing criteria and provide in JSON format:
   "content": (0-10 for task response and development),
   "strengths": ["strength1", "strength2", "strength3"],
   "improvements": ["improvement1", "improvement2", "improvement3"], 
-  "detailedFeedback": "detailed feedback on organization, examples, language use, and task achievement"
+  "detailedFeedback": "detailed feedback on organization, examples, language use, and task achievement",
+  "improvedResponse": "An enhanced version of the user's essay with better organization, grammar, vocabulary, examples, and development while preserving the original ideas and structure",
+  "improvementHighlights": ["specific improvement 1", "specific improvement 2", "specific improvement 3"]
 }`
     };
 
@@ -99,10 +109,48 @@ Evaluate based on TOEFL Writing criteria and provide in JSON format:
     } catch (parseError) {
       console.error('JSON Parse Error:', parseError);
       console.error('Raw text:', text);
-      throw new Error('Invalid JSON response from AI');
+      
+      // Fallback: Try to extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          ratingData = JSON.parse(jsonMatch[0]);
+        } catch (fallbackError) {
+          console.error('Fallback JSON Parse Error:', fallbackError);
+          throw new Error('Invalid JSON response from AI');
+        }
+      } else {
+        throw new Error('No JSON found in AI response');
+      }
     }
 
-    return Response.json(ratingData);
+    // Ensure required fields exist for all sections
+    const defaultRating = {
+      score: 0,
+      accuracy: 0,
+      fluency: 0,
+      content: 0,
+      strengths: [],
+      improvements: [],
+      detailedFeedback: "Unable to provide detailed feedback"
+    };
+
+    // Add improvedResponse fields for speaking and writing if missing
+    if ((section === 'speaking' || section === 'writing') && !ratingData.improvedResponse) {
+      ratingData.improvedResponse = "Improved version not available";
+      ratingData.improvementHighlights = ["Please try again for improved version"];
+    }
+
+    // Merge with defaults to ensure all fields exist
+    const finalRating = { ...defaultRating, ...ratingData };
+
+    // Validate score ranges
+    ['score', 'accuracy', 'fluency', 'content'].forEach(field => {
+      if (finalRating[field] < 0) finalRating[field] = 0;
+      if (finalRating[field] > 10) finalRating[field] = 10;
+    });
+
+    return Response.json(finalRating);
 
   } catch (error) {
     console.error('Error rating answer:', error);
