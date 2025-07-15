@@ -12,8 +12,6 @@ const useSpeechRecognition = () => {
   const [isMobile, setIsMobile] = useState(false);
   const finalTranscriptRef = useRef('');
   const shouldContinueRef = useRef(false);
-  const lastProcessedResultRef = useRef(-1);
-  const sessionStartTimeRef = useRef(0);
 
   useEffect(() => {
     // Detect mobile device
@@ -35,28 +33,19 @@ const useSpeechRecognition = () => {
       recognitionInstance.onstart = () => {
         setIsListening(true);
         setError(null);
-        // Reset the result index counter on each start
-        lastProcessedResultRef.current = -1;
-        if (sessionStartTimeRef.current === 0) {
-          sessionStartTimeRef.current = Date.now();
-        }
       };
 
       recognitionInstance.onresult = (event) => {
         let interimTranscript = '';
         let finalTranscript = finalTranscriptRef.current;
 
-        // Process only results we haven't seen before
-        for (let i = Math.max(event.resultIndex, lastProcessedResultRef.current + 1); i < event.results.length; i++) {
+        // Process results consistently for both mobile and desktop
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcriptPart = event.results[i][0].transcript;
-          
           if (event.results[i].isFinal) {
-            // Add final results with a space
             finalTranscript += transcriptPart + ' ';
             finalTranscriptRef.current = finalTranscript;
-            lastProcessedResultRef.current = i;
           } else {
-            // Add interim results
             interimTranscript += transcriptPart;
           }
         }
@@ -107,8 +96,6 @@ const useSpeechRecognition = () => {
       setError(null);
       shouldContinueRef.current = true;
       finalTranscriptRef.current = '';
-      lastProcessedResultRef.current = -1;
-      sessionStartTimeRef.current = Date.now();
       try {
         recognition.start();
       } catch (error) {
@@ -158,16 +145,12 @@ const useSpeechRecognition = () => {
   const resetTranscript = useCallback(() => {
     setTranscript('');
     finalTranscriptRef.current = '';
-    lastProcessedResultRef.current = -1;
-    sessionStartTimeRef.current = 0;
     setError(null);
   }, []);
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
     finalTranscriptRef.current = '';
-    lastProcessedResultRef.current = -1;
-    sessionStartTimeRef.current = 0;
   }, []);
 
   return {
@@ -184,7 +167,6 @@ const useSpeechRecognition = () => {
     isMobile
   };
 };
-
 // ===== TEXT-TO-SPEECH HOOK =====
 const useTextToSpeech = () => {
   const [isSupported, setIsSupported] = useState(false);
@@ -2115,6 +2097,7 @@ export default function TOEFLApp() {
               <div className="grid md:grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-blue-600">{questions.length}</div>
+                  <div className="text-sm text-gray-600">Total Questions</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-green-600">{Object.keys(aiReviews).length}</div>
