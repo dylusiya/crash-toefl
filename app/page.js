@@ -31,19 +31,18 @@ const useSpeechRecognition = () => {
         let finalTranscript = '';
         let interimTranscript = '';
 
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Process all results to get the complete transcript
+        for (let i = 0; i < event.results.length; i++) {
           const transcriptPart = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += transcriptPart;
+            finalTranscript += transcriptPart + ' ';
           } else {
             interimTranscript += transcriptPart;
           }
         }
 
-        setTranscript(prev => {
-          const newTranscript = prev + finalTranscript;
-          return newTranscript;
-        });
+        // Set the complete transcript (final + interim)
+        setTranscript(finalTranscript + interimTranscript);
       };
 
       recognitionInstance.onerror = (event) => {
@@ -77,6 +76,11 @@ const useSpeechRecognition = () => {
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
+    setError(null);
+  }, []);
+
+  const clearTranscript = useCallback(() => {
+    setTranscript('');
   }, []);
 
   return {
@@ -86,7 +90,8 @@ const useSpeechRecognition = () => {
     error,
     startListening,
     stopListening,
-    resetTranscript
+    resetTranscript,
+    clearTranscript
   };
 };
 
@@ -189,11 +194,13 @@ const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
     error, 
     startListening, 
     stopListening, 
-    resetTranscript 
+    resetTranscript,
+    clearTranscript 
   } = useSpeechRecognition();
   
   const [recordingTime, setRecordingTime] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [finalTranscript, setFinalTranscript] = useState('');
   const intervalRef = useRef(null);
 
   // Update parent component with transcript
@@ -226,22 +233,30 @@ const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
   const handleStartRecording = () => {
     setIsRecording(true);
     setRecordingTime(0);
-    resetTranscript();
+    setFinalTranscript('');
+    clearTranscript();
     startListening();
   };
 
   const handleStopRecording = () => {
     setIsRecording(false);
     stopListening();
+    // Save the final transcript when stopping
+    if (transcript) {
+      setFinalTranscript(transcript);
+    }
   };
 
   const handleReset = () => {
     setIsRecording(false);
     setRecordingTime(0);
+    setFinalTranscript('');
     resetTranscript();
     stopListening();
     onTranscriptUpdate(questionId, '');
   };
+
+  const displayTranscript = transcript || finalTranscript;
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -292,7 +307,7 @@ const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
               </button>
             )}
             
-            {transcript && (
+            {displayTranscript && (
               <button
                 onClick={handleReset}
                 className="flex items-center space-x-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
@@ -343,18 +358,18 @@ const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
       </div>
 
       {/* Live Transcript */}
-      {transcript && (
+      {displayTranscript && (
         <div className="mb-4">
           <h6 className="font-semibold text-gray-700 mb-2">📝 Your Speech (Live Transcript):</h6>
           <div className="p-4 bg-white rounded-lg border-2 border-blue-200 min-h-[120px]">
             <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
-              {transcript}
+              {displayTranscript}
               {isListening && <span className="inline-block w-2 h-5 bg-blue-500 animate-pulse ml-1"></span>}
             </p>
           </div>
           <div className="mt-2 flex justify-between items-center text-sm text-gray-500">
-            <span>{transcript.length} characters</span>
-            <span>{Math.round(transcript.trim().split(/\s+/).length)} words</span>
+            <span>{displayTranscript.length} characters</span>
+            <span>{Math.round(displayTranscript.trim().split(/\s+/).length)} words</span>
           </div>
         </div>
       )}

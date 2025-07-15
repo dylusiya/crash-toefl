@@ -1,4 +1,4 @@
 {
-  "/api/rate-answer/route": "app/api/rate-answer/route.js",
+  "/api/generate-question/route": "app/api/generate-question/route.js",
   "/page": "app/page.js"
 }
