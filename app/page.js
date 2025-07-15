@@ -9,15 +9,21 @@ const useSpeechRecognition = () => {
   const [transcript, setTranscript] = useState('');
   const [recognition, setRecognition] = useState(null);
   const [error, setError] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const finalTranscriptRef = useRef('');
 
   useEffect(() => {
+    // Detect mobile device
+    const checkMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsMobile(checkMobile);
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (SpeechRecognition) {
       setIsSupported(true);
       const recognitionInstance = new SpeechRecognition();
       
-      recognitionInstance.continuous = true;
+      recognitionInstance.continuous = !checkMobile; // Mobile works better with continuous=false
       recognitionInstance.interimResults = true;
       recognitionInstance.lang = 'en-US';
       recognitionInstance.maxAlternatives = 1;
@@ -28,20 +34,35 @@ const useSpeechRecognition = () => {
       };
 
       recognitionInstance.onresult = (event) => {
-        let finalTranscript = '';
         let interimTranscript = '';
+        let finalTranscript = finalTranscriptRef.current;
 
-        // Process all results to get the complete transcript
-        for (let i = 0; i < event.results.length; i++) {
-          const transcriptPart = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcriptPart + ' ';
-          } else {
-            interimTranscript += transcriptPart;
+        // Process results differently for mobile vs desktop
+        if (checkMobile) {
+          // Mobile: Process only the latest results to avoid duplication
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcriptPart = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcriptPart + ' ';
+              finalTranscriptRef.current = finalTranscript;
+            } else {
+              interimTranscript += transcriptPart;
+            }
           }
+        } else {
+          // Desktop: Process all results from beginning
+          finalTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+            const transcriptPart = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcriptPart + ' ';
+            } else {
+              interimTranscript += transcriptPart;
+            }
+          }
+          finalTranscriptRef.current = finalTranscript;
         }
 
-        // Set the complete transcript (final + interim)
         setTranscript(finalTranscript + interimTranscript);
       };
 
@@ -49,10 +70,28 @@ const useSpeechRecognition = () => {
         console.error('Speech recognition error:', event.error);
         setError(event.error);
         setIsListening(false);
+        
+        // Auto-restart on mobile for better UX
+        if (checkMobile && event.error === 'no-speech') {
+          setTimeout(() => {
+            if (recognitionInstance && !recognitionInstance.listening) {
+              try {
+                recognitionInstance.start();
+              } catch (e) {
+                console.log('Could not restart recognition:', e);
+              }
+            }
+          }, 1000);
+        }
       };
 
       recognitionInstance.onend = () => {
         setIsListening(false);
+        
+        // Auto-restart for mobile continuous listening
+        if (checkMobile && recognitionInstance.continuous === false) {
+          // Don't auto-restart to avoid infinite loops
+        }
       };
 
       setRecognition(recognitionInstance);
@@ -64,23 +103,35 @@ const useSpeechRecognition = () => {
   const startListening = useCallback(() => {
     if (recognition && !isListening) {
       setError(null);
-      recognition.start();
+      finalTranscriptRef.current = '';
+      try {
+        recognition.start();
+      } catch (error) {
+        console.error('Failed to start recognition:', error);
+        setError('Failed to start recording');
+      }
     }
   }, [recognition, isListening]);
 
   const stopListening = useCallback(() => {
     if (recognition && isListening) {
-      recognition.stop();
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.error('Failed to stop recognition:', error);
+      }
     }
   }, [recognition, isListening]);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
+    finalTranscriptRef.current = '';
     setError(null);
   }, []);
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
+    finalTranscriptRef.current = '';
   }, []);
 
   return {
@@ -91,7 +142,8 @@ const useSpeechRecognition = () => {
     startListening,
     stopListening,
     resetTranscript,
-    clearTranscript
+    clearTranscript,
+    isMobile
   };
 };
 
@@ -195,7 +247,8 @@ const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
     startListening, 
     stopListening, 
     resetTranscript,
-    clearTranscript 
+    clearTranscript,
+    isMobile 
   } = useSpeechRecognition();
   
   const [recordingTime, setRecordingTime] = useState(0);
@@ -283,7 +336,22 @@ const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
       <h5 className="font-semibold text-gray-700 mb-3 flex items-center">
         <Mic className="w-5 h-5 mr-2" />
         Record Your Speaking Response
+        {isMobile && (
+          <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+            Mobile Mode
+          </span>
+        )}
       </h5>
+      
+      {/* Mobile-specific instructions */}
+      {isMobile && (
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-blue-700 text-sm">
+            📱 <strong>Mobile Tips:</strong> Speak clearly and pause briefly between sentences. 
+            Tap "Stop Recording" when finished to save your speech.
+          </p>
+        </div>
+      )}
       
       {/* Recording Controls */}
       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
@@ -352,6 +420,7 @@ const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
             <p className="text-blue-700 text-sm flex items-center">
               <Mic className="w-4 h-4 mr-2" />
               🎤 Speak clearly into your microphone. Your speech will be converted to text automatically.
+              {isMobile && " Tap 'Stop Recording' when finished."}
             </p>
           </div>
         )}
@@ -380,6 +449,14 @@ const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
         <ul className="text-sm text-green-700 space-y-1">
           <li>• Speak clearly and at a moderate pace</li>
           <li>• Make sure your microphone is working and positioned properly</li>
+          {isMobile ? (
+            <>
+              <li>• Pause briefly between sentences for better recognition</li>
+              <li>• Tap "Stop Recording" when finished to save your speech</li>
+            </>
+          ) : (
+            <li>• The system will continuously capture your speech</li>
+          )}
           <li>• If the transcription is inaccurate, you can edit the text below</li>
           <li>• Practice your response before recording for better results</li>
         </ul>
