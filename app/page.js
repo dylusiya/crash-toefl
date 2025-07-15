@@ -35,19 +35,36 @@ const useSpeechRecognition = () => {
         setError(null);
       };
 
-      recognitionInstance.onresult = (event) => {
+recognitionInstance.onresult = (event) => {
         let interimTranscript = '';
         let finalTranscript = finalTranscriptRef.current;
 
-        // Process results consistently for both mobile and desktop
+        // Process only new results to avoid duplication
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcriptPart = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += transcriptPart + ' ';
-            finalTranscriptRef.current = finalTranscript;
+            // Only add final results that aren't already in our transcript
+            if (!finalTranscript.includes(transcriptPart.trim())) {
+              finalTranscript += transcriptPart + ' ';
+              finalTranscriptRef.current = finalTranscript;
+            }
           } else {
             interimTranscript += transcriptPart;
           }
+        }
+
+        // Clean up any duplicate phrases in the final transcript
+        const cleanedFinalTranscript = finalTranscript
+          .split(' ')
+          .filter((word, index, arr) => {
+            // Remove duplicate words that appear consecutively
+            return word !== arr[index - 1] || word.trim() === '';
+          })
+          .join(' ');
+
+        if (cleanedFinalTranscript !== finalTranscript) {
+          finalTranscriptRef.current = cleanedFinalTranscript;
+          finalTranscript = cleanedFinalTranscript;
         }
 
         setTranscript(finalTranscript + interimTranscript);
