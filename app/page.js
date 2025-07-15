@@ -11,6 +11,7 @@ const useSpeechRecognition = () => {
   const [error, setError] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const finalTranscriptRef = useRef('');
+  const shouldContinueRef = useRef(false);
 
   useEffect(() => {
     // Detect mobile device
@@ -23,7 +24,8 @@ const useSpeechRecognition = () => {
       setIsSupported(true);
       const recognitionInstance = new SpeechRecognition();
       
-      recognitionInstance.continuous = !checkMobile; // Mobile works better with continuous=false
+      // Always use continuous=true for better control
+      recognitionInstance.continuous = true;
       recognitionInstance.interimResults = true;
       recognitionInstance.lang = 'en-US';
       recognitionInstance.maxAlternatives = 1;
@@ -37,30 +39,15 @@ const useSpeechRecognition = () => {
         let interimTranscript = '';
         let finalTranscript = finalTranscriptRef.current;
 
-        // Process results differently for mobile vs desktop
-        if (checkMobile) {
-          // Mobile: Process only the latest results to avoid duplication
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcriptPart = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcriptPart + ' ';
-              finalTranscriptRef.current = finalTranscript;
-            } else {
-              interimTranscript += transcriptPart;
-            }
+        // Process results consistently for both mobile and desktop
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcriptPart = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcriptPart + ' ';
+            finalTranscriptRef.current = finalTranscript;
+          } else {
+            interimTranscript += transcriptPart;
           }
-        } else {
-          // Desktop: Process all results from beginning
-          finalTranscript = '';
-          for (let i = 0; i < event.results.length; i++) {
-            const transcriptPart = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
-              finalTranscript += transcriptPart + ' ';
-            } else {
-              interimTranscript += transcriptPart;
-            }
-          }
-          finalTranscriptRef.current = finalTranscript;
         }
 
         setTranscript(finalTranscript + interimTranscript);
@@ -69,28 +56,32 @@ const useSpeechRecognition = () => {
       recognitionInstance.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setError(event.error);
-        setIsListening(false);
         
-        // Auto-restart on mobile for better UX
-        if (checkMobile && event.error === 'no-speech') {
-          setTimeout(() => {
-            if (recognitionInstance && !recognitionInstance.listening) {
-              try {
-                recognitionInstance.start();
-              } catch (e) {
-                console.log('Could not restart recognition:', e);
-              }
-            }
-          }, 1000);
+        // Don't automatically stop on certain errors
+        if (event.error === 'no-speech' || event.error === 'audio-capture') {
+          // These are temporary errors, don't stop the session
+          return;
         }
+        
+        setIsListening(false);
+        shouldContinueRef.current = false;
       };
 
       recognitionInstance.onend = () => {
         setIsListening(false);
         
-        // Auto-restart for mobile continuous listening
-        if (checkMobile && recognitionInstance.continuous === false) {
-          // Don't auto-restart to avoid infinite loops
+        // Auto-restart if we should continue (for mobile compatibility)
+        if (shouldContinueRef.current) {
+          setTimeout(() => {
+            try {
+              if (shouldContinueRef.current) {
+                recognitionInstance.start();
+              }
+            } catch (e) {
+              console.log('Could not restart recognition:', e);
+              shouldContinueRef.current = false;
+            }
+          }, 100);
         }
       };
 
@@ -103,22 +94,50 @@ const useSpeechRecognition = () => {
   const startListening = useCallback(() => {
     if (recognition && !isListening) {
       setError(null);
+      shouldContinueRef.current = true;
       finalTranscriptRef.current = '';
       try {
         recognition.start();
       } catch (error) {
         console.error('Failed to start recognition:', error);
         setError('Failed to start recording');
+        shouldContinueRef.current = false;
       }
     }
   }, [recognition, isListening]);
 
   const stopListening = useCallback(() => {
-    if (recognition && isListening) {
+    if (recognition) {
+      shouldContinueRef.current = false;
       try {
         recognition.stop();
       } catch (error) {
         console.error('Failed to stop recognition:', error);
+      }
+    }
+  }, [recognition]);
+
+  const pauseListening = useCallback(() => {
+    if (recognition && isListening) {
+      shouldContinueRef.current = false;
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.error('Failed to pause recognition:', error);
+      }
+    }
+  }, [recognition, isListening]);
+
+  const resumeListening = useCallback(() => {
+    if (recognition && !isListening) {
+      setError(null);
+      shouldContinueRef.current = true;
+      try {
+        recognition.start();
+      } catch (error) {
+        console.error('Failed to resume recognition:', error);
+        setError('Failed to resume recording');
+        shouldContinueRef.current = false;
       }
     }
   }, [recognition, isListening]);
@@ -141,12 +160,13 @@ const useSpeechRecognition = () => {
     error,
     startListening,
     stopListening,
+    pauseListening,
+    resumeListening,
     resetTranscript,
     clearTranscript,
     isMobile
   };
 };
-
 // ===== TEXT-TO-SPEECH HOOK =====
 const useTextToSpeech = () => {
   const [isSupported, setIsSupported] = useState(false);

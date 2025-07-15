@@ -31,7 +31,7 @@ export async function POST(request) {
 
     const prompts = {
       reading: {
-        Factual: `Create a TOEFL Reading Factual question using EXACT official TOEFL formats. Return only this JSON:
+        Factual: `Create a TOEFL Reading Factual question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "reading",
   "type": "Factual",
@@ -39,15 +39,15 @@ export async function POST(request) {
   "passage": "[Write an original 300-400 word academic passage about science, history, politics, or environment. Include specific facts, dates, processes, and details that can be directly questioned. Write at university level with complex sentence structures.]",
   "question": "According to paragraph [1-4], [specific topic from passage] [effects/affects/influences] [something] primarily by",
   "options": [
-    "A [Complete answer choice that directly states what the passage says]",
-    "B [Plausible but incorrect interpretation of the information]", 
-    "C [Different detail from passage that doesn't answer the question]",
-    "D [Information not mentioned in the passage]"
+    "[Complete answer choice that directly states what the passage says - MAKE THIS THE CORRECT ANSWER]",
+    "[Plausible but incorrect interpretation of the information]", 
+    "[Different detail from passage that doesn't answer the question]",
+    "[Information not mentioned in the passage]"
   ],
   "correctAnswer": "A"
 }`,
 
-        Inference: `Create a TOEFL Reading Inference question using EXACT official TOEFL formats. Return only this JSON:
+        Inference: `Create a TOEFL Reading Inference question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "reading",
   "type": "Inference", 
@@ -55,15 +55,15 @@ export async function POST(request) {
   "passage": "[Write an original 300-400 word academic passage that strongly implies conclusions through evidence and context without stating them directly. Include data, examples, and patterns that lead to logical inferences.]",
   "question": "What can be inferred from paragraph [1-4] about [specific topic from passage]?",
   "options": [
-    "A [Logical conclusion strongly supported by evidence in the passage]",
-    "B [Too extreme or absolute conclusion not fully supported]", 
-    "C [Contradicts what the passage implies]",
-    "D [Not supported by any evidence in the passage]"
+    "[Logical conclusion strongly supported by evidence in the passage - MAKE THIS THE CORRECT ANSWER]",
+    "[Too extreme or absolute conclusion not fully supported]", 
+    "[Contradicts what the passage implies]",
+    "[Not supported by any evidence in the passage]"
   ],
   "correctAnswer": "A"
 }`,
 
-        Vocabulary: `Create a TOEFL Reading Vocabulary question using EXACT official TOEFL formats. Return only this JSON:
+        Vocabulary: `Create a TOEFL Reading Vocabulary question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "reading",
   "type": "Vocabulary",
@@ -71,15 +71,15 @@ export async function POST(request) {
   "passage": "[Write an original 300-400 word academic passage that includes advanced vocabulary words used in clear context. Use words like: proliferate, substantial, facilitate, undermine, enhance, comprise, etc.]",
   "question": "The word '[specific challenging word from your passage]' in the passage is closest in meaning to",
   "options": [
-    "A [correct synonym]",
-    "B [word with similar but different meaning]", 
-    "C [word with opposite meaning]",
-    "D [completely unrelated word]"
+    "[correct synonym - MAKE THIS THE CORRECT ANSWER]",
+    "[word with similar but different meaning]", 
+    "[word with opposite meaning]",
+    "[completely unrelated word]"
   ],
   "correctAnswer": "A"
 }`,
 
-        Summary: `Create a TOEFL Reading Summary question using EXACT official TOEFL formats. Return only this JSON:
+        Summary: `Create a TOEFL Reading Summary question using EXACT official TOEFL formats. Generate 6 answer options where EXACTLY THREE are correct (the first 3 should be correct). Return only this JSON:
 {
   "section": "reading",
   "type": "Summary",
@@ -87,17 +87,17 @@ export async function POST(request) {
   "passage": "[Write an original 350-450 word academic passage with 3-4 clear main points and supporting details about a complex academic topic.]",
   "question": "Directions: An introductory sentence for a brief summary of the passage is provided below. Complete the summary by selecting the THREE answer choices that express the most important ideas in the passage. Some sentences do not belong in the summary because they express ideas that are not presented in the passage or are minor ideas in the passage. This question is worth 2 points.",
   "options": [
-    "A [First major point that captures essential information]",
-    "B [Second major point that captures essential information]", 
-    "C [Third major point that captures essential information]",
-    "D [Minor supporting detail, not a main idea]",
-    "E [Specific example rather than main concept]",
-    "F [Information not presented in the passage]"
+    "[First major point that captures essential information - CORRECT]",
+    "[Second major point that captures essential information - CORRECT]", 
+    "[Third major point that captures essential information - CORRECT]",
+    "[Minor supporting detail, not a main idea - INCORRECT]",
+    "[Specific example rather than main concept - INCORRECT]",
+    "[Information not presented in the passage - INCORRECT]"
   ],
   "correctAnswer": "A, B, C"
 }`,
 
-        Purpose: `Create a TOEFL Reading Purpose question using EXACT official TOEFL formats. Return only this JSON:
+        Purpose: `Create a TOEFL Reading Purpose question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "reading",
   "type": "Purpose",
@@ -105,17 +105,17 @@ export async function POST(request) {
   "passage": "[Write an original 300-400 word academic passage where the author uses specific examples, analogies, or details to serve clear rhetorical purposes.]",
   "question": "Why does the author mention [specific detail/example from your passage]?",
   "options": [
-    "A To [correct rhetorical purpose - illustrate, support, contrast, or clarify the main point]",
-    "B To [incorrect but plausible purpose]", 
-    "C To [purpose that contradicts the passage's intent]",
-    "D To [completely unrelated purpose]"
+    "To [correct rhetorical purpose - illustrate, support, contrast, or clarify the main point - MAKE THIS THE CORRECT ANSWER]",
+    "To [incorrect but plausible purpose]", 
+    "To [purpose that contradicts the passage's intent]",
+    "To [completely unrelated purpose]"
   ],
   "correctAnswer": "A"
 }`
       },
 
       listening: {
-        Gist: `Create a TOEFL Listening Gist question using EXACT official TOEFL formats. Return only this JSON:
+        Gist: `Create a TOEFL Listening Gist question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "listening",
   "type": "Gist", 
@@ -124,15 +124,15 @@ export async function POST(request) {
   "transcript": "[Create a completely original, realistic 200-250 word conversation with natural dialogue. Include: realistic university situations (office hours, course planning, research help, academic issues), specific course names/requirements, natural speech patterns with some hesitation and informal language, clear main purpose.]",
   "question": "Why does the student go to see the [professor/advisor/etc.]?",
   "options": [
-    "A To [main purpose clearly stated in conversation]",
-    "B To [secondary topic mentioned but not main purpose]", 
-    "C To [different plausible academic purpose]",
-    "D To [unrelated academic activity]"
+    "To [main purpose clearly stated in conversation - MAKE THIS THE CORRECT ANSWER]",
+    "To [secondary topic mentioned but not main purpose]", 
+    "To [different plausible academic purpose]",
+    "To [unrelated academic activity]"
   ],
   "correctAnswer": "A"
 }`,
 
-        Detail: `Create a TOEFL Listening Detail question using EXACT official TOEFL formats. Return only this JSON:
+        Detail: `Create a TOEFL Listening Detail question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "listening",
   "type": "Detail",
@@ -141,15 +141,15 @@ export async function POST(request) {
   "transcript": "[Create a completely original 250-300 word academic lecture with: specific facts, numbers, dates, percentages, or processes, clear examples and explanations, natural professorial speaking style, technical vocabulary appropriate to the field.]",
   "question": "According to the professor, what [specific detail question about facts, numbers, processes, or examples from lecture]?",
   "options": [
-    "A [Correct specific detail explicitly mentioned in lecture]",
-    "B [Different fact/number that was mentioned in lecture]", 
-    "C [Plausible but incorrect detail not mentioned]",
-    "D [Information clearly not mentioned in lecture]"
+    "[Correct specific detail explicitly mentioned in lecture - MAKE THIS THE CORRECT ANSWER]",
+    "[Different fact/number that was mentioned in lecture]", 
+    "[Plausible but incorrect detail not mentioned]",
+    "[Information clearly not mentioned in lecture]"
   ],
   "correctAnswer": "A"
 }`,
 
-        Function: `Create a TOEFL Listening Function question using EXACT official TOEFL formats. Return only this JSON:
+        Function: `Create a TOEFL Listening Function question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "listening",
   "type": "Function",
@@ -158,15 +158,15 @@ export async function POST(request) {
   "transcript": "[Create an original lecture/discussion where the professor uses a specific example, analogy, or reference for a clear rhetorical purpose - to illustrate a concept, contrast ideas, emphasize importance, etc.]",
   "question": "Why does the professor mention [specific detail from your transcript]?",
   "options": [
-    "A To [correct rhetorical function - illustrate, contrast, emphasize, etc.]",
-    "B To [different but plausible function]", 
-    "C To [misinterpretation of the function]",
-    "D To [completely unrelated function]"
+    "To [correct rhetorical function - illustrate, contrast, emphasize, etc. - MAKE THIS THE CORRECT ANSWER]",
+    "To [different but plausible function]", 
+    "To [misinterpretation of the function]",
+    "To [completely unrelated function]"
   ],
   "correctAnswer": "A"
 }`,
 
-        Attitude: `Create a TOEFL Listening Attitude question using EXACT official TOEFL formats. Return only this JSON:
+        Attitude: `Create a TOEFL Listening Attitude question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "listening",
   "type": "Attitude",
@@ -175,15 +175,15 @@ export async function POST(request) {
   "transcript": "[Create an original conversation where one speaker clearly expresses attitude through word choice, tone indicators like 'unfortunately', 'excellent', 'I'm concerned that', etc. Make the emotion obvious.]",
   "question": "What is [the student's/the professor's] attitude toward [topic from conversation]?",
   "options": [
-    "A [Correct attitude clearly expressed in conversation]",
-    "B [Opposite emotional response]", 
-    "C [Different but related emotion]",
-    "D [Neutral or unrelated attitude]"
+    "[Correct attitude clearly expressed in conversation - MAKE THIS THE CORRECT ANSWER]",
+    "[Opposite emotional response]", 
+    "[Different but related emotion]",
+    "[Neutral or unrelated attitude]"
   ],
   "correctAnswer": "A"
 }`,
 
-        Inference: `Create a TOEFL Listening Inference question using EXACT official TOEFL formats. Return only this JSON:
+        Inference: `Create a TOEFL Listening Inference question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "listening",
   "type": "Inference",
@@ -192,15 +192,15 @@ export async function POST(request) {
   "transcript": "[Create an original conversation that implies information through context clues - student's situation, academic standing, future plans, or needs - without stating directly.]",
   "question": "What can be inferred about [aspect related to conversation]?",
   "options": [
-    "A [Logical inference strongly supported by context clues]",
-    "B [Inference that goes too far beyond evidence]", 
-    "C [Contradicts what conversation implies]",
-    "D [Not supported by conversation evidence]"
+    "[Logical inference strongly supported by context clues - MAKE THIS THE CORRECT ANSWER]",
+    "[Inference that goes too far beyond evidence]", 
+    "[Contradicts what conversation implies]",
+    "[Not supported by conversation evidence]"
   ],
   "correctAnswer": "A"
 }`,
 
-        "Connecting Info": `Create a TOEFL Listening Connecting Information question using EXACT official TOEFL formats. Return only this JSON:
+        "Connecting Info": `Create a TOEFL Listening Connecting Information question using EXACT official TOEFL formats. Generate 4 answer options where EXACTLY ONE is correct. Return only this JSON:
 {
   "section": "listening",
   "type": "Connecting Info",
@@ -209,10 +209,10 @@ export async function POST(request) {
   "transcript": "[Create an original lecture that clearly compares/contrasts different concepts, processes, or phenomena with specific examples showing relationships.]",
   "question": "According to the professor, how are [two concepts from lecture] similar?",
   "options": [
-    "A [Correct similarity/difference mentioned in lecture]",
-    "B [Correct information but answers wrong question]", 
-    "C [Incorrect relationship]",
-    "D [Relationship not discussed in lecture]"
+    "[Correct similarity/difference mentioned in lecture - MAKE THIS THE CORRECT ANSWER]",
+    "[Correct information but answers wrong question]", 
+    "[Incorrect relationship]",
+    "[Relationship not discussed in lecture]"
   ],
   "correctAnswer": "A"
 }`
@@ -319,23 +319,59 @@ export async function POST(request) {
 
     const questionData = JSON.parse(cleanedText);
     
-    // Add authentic TOEFL formatting
-    if (section === 'reading' && questionData.options) {
-      // Ensure proper TOEFL option formatting
-      questionData.options = questionData.options.map((option, index) => {
-        const letter = String.fromCharCode(65 + index); // A, B, C, D
-        const cleanOption = option.replace(/^[A-D]\s*\)?\s*/, ''); // Remove existing letters
-        return `${letter} ${cleanOption}`;
-      });
-    }
-
-    if (section === 'listening' && questionData.options) {
-      // Ensure proper TOEFL option formatting
-      questionData.options = questionData.options.map((option, index) => {
-        const letter = String.fromCharCode(65 + index); // A, B, C, D
-        const cleanOption = option.replace(/^[A-D]\s*\)?\s*/, ''); // Remove existing letters
-        return `${letter} ${cleanOption}`;
-      });
+    // Add authentic TOEFL formatting and randomize answer positions
+    if ((section === 'reading' || section === 'listening') && questionData.options) {
+      // Clean all options first
+      const cleanOptions = questionData.options.map(option => 
+        option.replace(/^[A-F]\s*\)?\s*/, '').trim()
+      );
+      
+      // For summary questions (6 options), handle differently
+      if (questionData.type === 'Summary' && cleanOptions.length === 6) {
+        // First 3 are correct, shuffle all 6
+        const shuffled = [...cleanOptions];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        // Add letters A-F
+        questionData.options = shuffled.map((option, index) => {
+          const letter = String.fromCharCode(65 + index);
+          return `${letter} ${option}`;
+        });
+        
+        // Find positions of the first 3 original options (which were correct)
+        const correctPositions = [];
+        for (let i = 0; i < 3; i++) {
+          const pos = shuffled.findIndex(opt => opt === cleanOptions[i]);
+          if (pos !== -1) {
+            correctPositions.push(String.fromCharCode(65 + pos));
+          }
+        }
+        questionData.correctAnswer = correctPositions.join(', ');
+      } else {
+        // For regular 4-option questions, randomize position of correct answer
+        const correctAnswerContent = cleanOptions[0]; // First option is always correct
+        const randomPosition = Math.floor(Math.random() * 4);
+        
+        // Create new array with correct answer in random position
+        const newOptions = [...cleanOptions];
+        
+        // Move correct answer to random position
+        if (randomPosition !== 0) {
+          [newOptions[0], newOptions[randomPosition]] = [newOptions[randomPosition], newOptions[0]];
+        }
+        
+        // Add letters A-D
+        questionData.options = newOptions.map((option, index) => {
+          const letter = String.fromCharCode(65 + index);
+          return `${letter} ${option}`;
+        });
+        
+        // Update correct answer letter
+        questionData.correctAnswer = String.fromCharCode(65 + randomPosition);
+      }
     }
 
     return Response.json(questionData);
