@@ -12,6 +12,8 @@ const useSpeechRecognition = () => {
   const [isMobile, setIsMobile] = useState(false);
   const finalTranscriptRef = useRef('');
   const shouldContinueRef = useRef(false);
+  const lastProcessedResultRef = useRef(-1);
+  const sessionStartTimeRef = useRef(0);
 
   useEffect(() => {
     // Detect mobile device
@@ -33,38 +35,30 @@ const useSpeechRecognition = () => {
       recognitionInstance.onstart = () => {
         setIsListening(true);
         setError(null);
+        // Reset the result index counter on each start
+        lastProcessedResultRef.current = -1;
+        if (sessionStartTimeRef.current === 0) {
+          sessionStartTimeRef.current = Date.now();
+        }
       };
 
-recognitionInstance.onresult = (event) => {
+      recognitionInstance.onresult = (event) => {
         let interimTranscript = '';
         let finalTranscript = finalTranscriptRef.current;
 
-        // Process only new results to avoid duplication
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Process only results we haven't seen before
+        for (let i = Math.max(event.resultIndex, lastProcessedResultRef.current + 1); i < event.results.length; i++) {
           const transcriptPart = event.results[i][0].transcript;
+          
           if (event.results[i].isFinal) {
-            // Only add final results that aren't already in our transcript
-            if (!finalTranscript.includes(transcriptPart.trim())) {
-              finalTranscript += transcriptPart + ' ';
-              finalTranscriptRef.current = finalTranscript;
-            }
+            // Add final results with a space
+            finalTranscript += transcriptPart + ' ';
+            finalTranscriptRef.current = finalTranscript;
+            lastProcessedResultRef.current = i;
           } else {
+            // Add interim results
             interimTranscript += transcriptPart;
           }
-        }
-
-        // Clean up any duplicate phrases in the final transcript
-        const cleanedFinalTranscript = finalTranscript
-          .split(' ')
-          .filter((word, index, arr) => {
-            // Remove duplicate words that appear consecutively
-            return word !== arr[index - 1] || word.trim() === '';
-          })
-          .join(' ');
-
-        if (cleanedFinalTranscript !== finalTranscript) {
-          finalTranscriptRef.current = cleanedFinalTranscript;
-          finalTranscript = cleanedFinalTranscript;
         }
 
         setTranscript(finalTranscript + interimTranscript);
@@ -113,6 +107,8 @@ recognitionInstance.onresult = (event) => {
       setError(null);
       shouldContinueRef.current = true;
       finalTranscriptRef.current = '';
+      lastProcessedResultRef.current = -1;
+      sessionStartTimeRef.current = Date.now();
       try {
         recognition.start();
       } catch (error) {
@@ -162,12 +158,16 @@ recognitionInstance.onresult = (event) => {
   const resetTranscript = useCallback(() => {
     setTranscript('');
     finalTranscriptRef.current = '';
+    lastProcessedResultRef.current = -1;
+    sessionStartTimeRef.current = 0;
     setError(null);
   }, []);
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
     finalTranscriptRef.current = '';
+    lastProcessedResultRef.current = -1;
+    sessionStartTimeRef.current = 0;
   }, []);
 
   return {
@@ -184,6 +184,7 @@ recognitionInstance.onresult = (event) => {
     isMobile
   };
 };
+
 // ===== TEXT-TO-SPEECH HOOK =====
 const useTextToSpeech = () => {
   const [isSupported, setIsSupported] = useState(false);
@@ -2114,7 +2115,6 @@ export default function TOEFLApp() {
               <div className="grid md:grid-cols-3 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-blue-600">{questions.length}</div>
-                  <div className="text-sm text-gray-600">Total Questions</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-green-600">{Object.keys(aiReviews).length}</div>
