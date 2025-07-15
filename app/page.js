@@ -1,6 +1,94 @@
 'use client'
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Brain, BookOpen, Headphones, Mic, PenTool, Loader, Star, Target, CheckCircle, AlertCircle, Volume2, VolumeX, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, X, FileText, Copy, Clock } from 'lucide-react';
+
+// ===== SPEECH RECOGNITION HOOK =====
+const useSpeechRecognition = () => {
+  const [isSupported, setIsSupported] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [recognition, setRecognition] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      setIsSupported(true);
+      const recognitionInstance = new SpeechRecognition();
+      
+      recognitionInstance.continuous = true;
+      recognitionInstance.interimResults = true;
+      recognitionInstance.lang = 'en-US';
+      recognitionInstance.maxAlternatives = 1;
+
+      recognitionInstance.onstart = () => {
+        setIsListening(true);
+        setError(null);
+      };
+
+      recognitionInstance.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcriptPart = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcriptPart;
+          } else {
+            interimTranscript += transcriptPart;
+          }
+        }
+
+        setTranscript(prev => {
+          const newTranscript = prev + finalTranscript;
+          return newTranscript;
+        });
+      };
+
+      recognitionInstance.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setError(event.error);
+        setIsListening(false);
+      };
+
+      recognitionInstance.onend = () => {
+        setIsListening(false);
+      };
+
+      setRecognition(recognitionInstance);
+    } else {
+      setIsSupported(false);
+    }
+  }, []);
+
+  const startListening = useCallback(() => {
+    if (recognition && !isListening) {
+      setError(null);
+      recognition.start();
+    }
+  }, [recognition, isListening]);
+
+  const stopListening = useCallback(() => {
+    if (recognition && isListening) {
+      recognition.stop();
+    }
+  }, [recognition, isListening]);
+
+  const resetTranscript = useCallback(() => {
+    setTranscript('');
+  }, []);
+
+  return {
+    isSupported,
+    isListening,
+    transcript,
+    error,
+    startListening,
+    stopListening,
+    resetTranscript
+  };
+};
 
 // ===== TEXT-TO-SPEECH HOOK =====
 const useTextToSpeech = () => {
@@ -90,6 +178,199 @@ const useTextToSpeech = () => {
     speak,
     stop
   };
+};
+
+// ===== VOICE RECORDER COMPONENT FOR SPEAKING TASKS =====
+const VoiceRecorder = ({ questionId, onTranscriptUpdate, section }) => {
+  const { 
+    isSupported, 
+    isListening, 
+    transcript, 
+    error, 
+    startListening, 
+    stopListening, 
+    resetTranscript 
+  } = useSpeechRecognition();
+  
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
+  const intervalRef = useRef(null);
+
+  // Update parent component with transcript
+  useEffect(() => {
+    if (transcript) {
+      onTranscriptUpdate(questionId, transcript);
+    }
+  }, [transcript, questionId, onTranscriptUpdate]);
+
+  // Handle recording timer
+  useEffect(() => {
+    if (isListening && isRecording) {
+      intervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isListening, isRecording]);
+
+  const handleStartRecording = () => {
+    setIsRecording(true);
+    setRecordingTime(0);
+    resetTranscript();
+    startListening();
+  };
+
+  const handleStopRecording = () => {
+    setIsRecording(false);
+    stopListening();
+  };
+
+  const handleReset = () => {
+    setIsRecording(false);
+    setRecordingTime(0);
+    resetTranscript();
+    stopListening();
+    onTranscriptUpdate(questionId, '');
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (!isSupported) {
+    return (
+      <div className="mb-6 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+        <h5 className="font-semibold text-yellow-800 mb-2 flex items-center">
+          <AlertCircle className="w-5 h-5 mr-2" />
+          Speech Recognition Not Available
+        </h5>
+        <p className="text-yellow-700 text-sm mb-3">
+          Your browser doesn't support speech recognition. Please use the text input below instead.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-6">
+      <h5 className="font-semibold text-gray-700 mb-3 flex items-center">
+        <Mic className="w-5 h-5 mr-2" />
+        Record Your Speaking Response
+      </h5>
+      
+      {/* Recording Controls */}
+      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-4">
+            {!isRecording ? (
+              <button
+                onClick={handleStartRecording}
+                className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                <Mic className="w-5 h-5" />
+                <span>Start Recording</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleStopRecording}
+                className="flex items-center space-x-2 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              >
+                <Pause className="w-5 h-5" />
+                <span>Stop Recording</span>
+              </button>
+            )}
+            
+            {transcript && (
+              <button
+                onClick={handleReset}
+                className="flex items-center space-x-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>Reset</span>
+              </button>
+            )}
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              {isListening && (
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+              )}
+              <span className={`font-mono text-lg ${isListening ? 'text-red-600' : 'text-gray-600'}`}>
+                {formatTime(recordingTime)}
+              </span>
+            </div>
+            
+            {isListening && (
+              <div className="flex items-center space-x-2 text-red-600">
+                <Volume2 className="w-5 h-5" />
+                <span className="text-sm font-medium">Listening...</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recording Status */}
+        {error && (
+          <div className="mb-3 p-3 bg-red-50 rounded-lg border border-red-200">
+            <p className="text-red-700 text-sm flex items-center">
+              <AlertCircle className="w-4 h-4 mr-2" />
+              Recording error: {error}. Please try again.
+            </p>
+          </div>
+        )}
+
+        {isListening && (
+          <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-blue-700 text-sm flex items-center">
+              <Mic className="w-4 h-4 mr-2" />
+              🎤 Speak clearly into your microphone. Your speech will be converted to text automatically.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Live Transcript */}
+      {transcript && (
+        <div className="mb-4">
+          <h6 className="font-semibold text-gray-700 mb-2">📝 Your Speech (Live Transcript):</h6>
+          <div className="p-4 bg-white rounded-lg border-2 border-blue-200 min-h-[120px]">
+            <p className="text-gray-800 leading-relaxed whitespace-pre-wrap">
+              {transcript}
+              {isListening && <span className="inline-block w-2 h-5 bg-blue-500 animate-pulse ml-1"></span>}
+            </p>
+          </div>
+          <div className="mt-2 flex justify-between items-center text-sm text-gray-500">
+            <span>{transcript.length} characters</span>
+            <span>{Math.round(transcript.trim().split(/\s+/).length)} words</span>
+          </div>
+        </div>
+      )}
+
+      {/* Tips */}
+      <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+        <h6 className="font-semibold text-green-800 mb-2">🎯 Speaking Tips:</h6>
+        <ul className="text-sm text-green-700 space-y-1">
+          <li>• Speak clearly and at a moderate pace</li>
+          <li>• Make sure your microphone is working and positioned properly</li>
+          <li>• If the transcription is inaccurate, you can edit the text below</li>
+          <li>• Practice your response before recording for better results</li>
+        </ul>
+      </div>
+    </div>
+  );
 };
 
 // ===== VOICE SETTINGS COMPONENT =====
@@ -329,6 +610,116 @@ const IntegratedListeningSimulator = ({ title, transcript }) => {
           <p className="text-gray-700 italic leading-relaxed">{transcript}</p>
         </div>
       )}
+    </div>
+  );
+};
+
+// ===== ENHANCED TEXTAREA FOR SPEAKING WITH SPEECH INTEGRATION =====
+const SpeakingTextArea = ({ questionId, initialValue = '', onSubmit, section }) => {
+  const [value, setValue] = useState(initialValue);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [useVoiceInput, setUseVoiceInput] = useState(true);
+  
+  const handleChange = (e) => {
+    setValue(e.target.value);
+  };
+
+  const handleTranscriptUpdate = useCallback((id, transcript) => {
+    setValue(transcript);
+  }, []);
+
+  const handleSubmitClick = async () => {
+    if (!value.trim()) {
+      alert('Please provide a response first (either by speaking or typing)!');
+      return;
+    }
+    setIsSubmitting(true);
+    await onSubmit(questionId, value);
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="mb-6">
+      {/* Voice Input Toggle */}
+      <div className="mb-4 flex items-center justify-between">
+        <h5 className="font-semibold text-gray-700">Your Speaking Response:</h5>
+        <div className="flex items-center space-x-3">
+          <span className="text-sm text-gray-600">Input Method:</span>
+          <button
+            onClick={() => setUseVoiceInput(!useVoiceInput)}
+            className={`flex items-center space-x-2 px-3 py-1 rounded-lg font-medium transition-colors ${
+              useVoiceInput 
+                ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
+          >
+            {useVoiceInput ? (
+              <>
+                <Mic className="w-4 h-4" />
+                <span>Voice</span>
+              </>
+            ) : (
+              <>
+                <PenTool className="w-4 h-4" />
+                <span>Text</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Voice Input */}
+      {useVoiceInput && (
+        <VoiceRecorder
+          questionId={questionId}
+          onTranscriptUpdate={handleTranscriptUpdate}
+          section={section}
+        />
+      )}
+
+      {/* Text Input (always available for editing) */}
+      <div className="mb-4">
+        <h6 className="font-semibold text-gray-700 mb-2">
+          {useVoiceInput ? '✏️ Edit Your Response:' : '📝 Type Your Response:'}
+        </h6>
+        <textarea
+          value={value}
+          onChange={handleChange}
+          placeholder={useVoiceInput 
+            ? "Your speech will appear here automatically. You can also edit it manually..."
+            : "Type your speaking response here..."
+          }
+          className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-vertical"
+          rows={6}
+          style={{ minHeight: '120px' }}
+          disabled={isSubmitting}
+        />
+        <div className="mt-2 flex justify-between items-center">
+          <span className="text-sm text-gray-500">
+            {value.length} characters
+            <span className="ml-2 text-blue-600">
+              ({Math.round(value.trim().split(/\s+/).length)} words)
+            </span>
+          </span>
+          <button
+            onClick={handleSubmitClick}
+            disabled={isSubmitting || !value.trim()}
+            className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader className="w-5 h-5 mr-2 animate-spin" />
+                AI is rating...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-5 h-5 mr-2" />
+                Get AI Rating
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -1271,11 +1662,21 @@ export default function TOEFLApp() {
 
           {/* Text Answer (Speaking/Writing) */}
           {(isSpeakingOrWriting || !question.options) && !review && (
-            <IsolatedTextArea
-              questionId={question.id}
-              section={question.section || activeSection}
-              onSubmit={rateAnswer}
-            />
+            <>
+              {question.section === 'speaking' ? (
+                <SpeakingTextArea
+                  questionId={question.id}
+                  section={question.section || activeSection}
+                  onSubmit={rateAnswer}
+                />
+              ) : (
+                <IsolatedTextArea
+                  questionId={question.id}
+                  section={question.section || activeSection}
+                  onSubmit={rateAnswer}
+                />
+              )}
+            </>
           )}
 
           {/* Show User Answer for Speaking/Writing after review */}
@@ -1533,11 +1934,12 @@ export default function TOEFLApp() {
               <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 max-w-md mx-auto">
                 <h4 className="font-semibold text-blue-800 mb-2 flex items-center justify-center">
                   <Headphones className="w-5 h-5 mr-2" />
-                  🎧 Audio Features
+                  🎧 Interactive Features
                 </h4>
                 <ul className="text-sm text-blue-700 space-y-1">
                   <li>• 🔊 Audio simulation in Listening section</li>
-                  <li>• 🎤 Audio content for Integrated Speaking tasks</li>
+                  <li>• 🎤 Voice recording for Speaking tasks</li>
+                  <li>• 🗣️ Speech-to-text conversion</li>
                   <li>• ✍️ Audio content for Integrated Writing tasks</li>
                   <li>• ▶️ Play, stop, and replay controls</li>
                 </ul>
